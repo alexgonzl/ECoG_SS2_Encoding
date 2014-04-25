@@ -1,38 +1,9 @@
 
-function [out] = SS2_analyzeEncodingBehavioral(data,subjname, runnum)
+function out = SS2_analyzeEncodingBehavioral(S,data)
 
 % output
 out = [];
 out.data = data;
-
-% subject button response condition mapping:
-if strcmp(subjname,'SRb')
-    if (runnum < 4)
-        key1 = '5'; % abstract
-        key2 = '4'; % concrete
-    else
-        key1 = 'R'; % abstract
-        key2 = 'L'; % concrete
-    end
-elseif strcmp(subjname,'MD')
-    key1 = '4'; % abstract
-    key2 = '5'; % concrete
-elseif strcmp(subjname,'LK')
-    key1 = '1'; % abstract
-    key2 = '2'; % concrete
-elseif strcmp(subjname,'NC')
-    key1 = '2'; % abstract
-    key2 = '1'; % concrete
-elseif strcmp(subjname,'RHb')
-    key1 = '5'; % abstract
-    key2 = '4'; % concrete
-elseif strcmp(subjname,'JT')
-    key1 = '+'; % abstract
-    key2 = '6'; % concrete
-elseif strcmp(subjname,'RB')
-    key1 = '2'; % abstract
-    key2 = '1'; % concrete 
-end
 
 out.keys = {'abstract','concrete';key1,key2};
 
