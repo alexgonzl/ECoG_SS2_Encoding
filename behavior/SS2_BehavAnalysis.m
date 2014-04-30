@@ -10,21 +10,25 @@ sKeys = S.StudyKeys(run,:);
 studyCond   = study.cond;
 testCond    = test.cond(b);
 
+% store RTs
 studyRTs    = nan(nItems,1);
 testRTs     = nan(nItems,1);
 for ii = 1:nItems
     if study.respRT(ii)>0
         studyRTs(ii)   = study.respRT(ii);
+    elseif study.ITIrespRT(ii)>0
+        studyRTs(ii)   = study.ITIrespRT(ii)+2.5; % 2.5s= stimTime
     end
     if test.stimRT(b(ii)) > 0
         testRTs(ii)     = test.stimRT(b(ii));
     elseif test.poststimRT(b(ii)) > 0
-        testRTs(ii)     = test.poststimRT(b(ii))+1;
+        testRTs(ii)     = test.poststimRT(b(ii))+1;% 1 = stimTime
     end       
 end
 S.studyRTs  = [S.studyRTs; studyRTs];
 S.testRTs   = [S.testRTs ; testRTs];
 
+% store responses
 tResp = nan(nItems,1);
 for  jj = 1:numel(tKeys)
     [~,idx]     = ismember(test.stimresp(b),tKeys{jj});
@@ -33,7 +37,15 @@ for  jj = 1:numel(tKeys)
     tResp(idx==1)  = jj;
 end
 
-assert(mean(isnan(testRTs)==isnan(tResp)), 'respones don''t match the recorded RTs') 
+sResp = nan(nItems,1);
+for  jj = 1:numel(sKeys)
+    [~,idx]     = ismember(study.resp,tKeys{jj});
+    tResp(idx==1)  = jj;
+    [~,idx]     = ismember(test.poststimresp(b),tKeys{jj});
+    tResp(idx==1)  = jj;
+end
+assert(mean(isnan(testRTs)==isnan(tResp))==1, 'respones don''t match the recorded RTs') 
+
 
 S.old = cell2num(pairs(:,2))==1; % old stimuli
 S.new = cell2num(pairs(:,2))==2; % new stimuli
