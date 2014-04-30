@@ -17,15 +17,7 @@ for i=1:numel(StudyConds)
     S.sConds.(StudyConds{i}) = [];
 end
 
-TestConds = {'old', 'new', 'HCOresp','LCOresp', 'HCNresp', 'LCNresp',...
-    'NoAn','HChits','LChits','hits','miss','NoAn2Old','HCcr','LCcr','cr','fa','NoAn2New',...
-    'nhits','hitRTs','ncr','crRTs','nmiss','missRTs','nfa','faRTs','noan'};
-for i=1:numel(TestConds)
-    S.tConds.(TestConds{i}) = [];
-end
-
-
-otherFields = {'studyRTs','testRTs','fastRTRem','medRTRem','slowRTRem'};
+otherFields = {'items','cond','sResp','tResp','subRem','subForg','studyRTs','testRTs'};
 for i=1:numel(otherFields)
     S.(otherFields{i}) = [];
 end
@@ -36,7 +28,7 @@ for run = S.run_nums
     test    = load( [S.behavDataPath 'test_' num2str(run) '.' S.subjName '.out.mat']);
     test    = test.theData;
    
-    S = SS2_BehavAnalysis(S,run,study,test);
+    S = SS2e_CodeTrials(S,run,study,test);
 end
 % 
 % for run = 1: S.nruns
