@@ -10,7 +10,10 @@ S =[];
 S.expt  = 'SS2e';
 S.subjName   = 'SRb';
 S = SS2e_subjInfo(S);
-S.behavDataPath = ['/biac4/wagner/biac3/wagner7/ecog/subj' S.subjNum '/ecog/SS2/BehavData/'];
+
+S.dataPath      = ['/biac4/wagner/biac3/wagner7/ecog/subj' S.subjNum '/ecog/SS2/' ];
+S.behavDataPath = [S.dataPath 'BehavData/'];
+S.RawDataPath   = [S.dataPath 'RawData/'];
 
 StudyConds = {'Abs','Conc','CorrectAbs','InCorrectAbs', 'CorrectConc','InCorrectConc','noAnswer'};
 for i=1:numel(StudyConds)
@@ -23,13 +26,20 @@ for i=1:numel(otherFields)
 end
 
 for run = S.run_nums
+    fprintf( '\nProcessing Subject %s, Block %s, Run# %d \n',S.subjName, S.blocklist{run}, run);
     study   = load( [S.behavDataPath 'study_' num2str(run) '.' S.subjName '.out.mat']);
     study   = study.theData;
     test    = load( [S.behavDataPath 'test_' num2str(run) '.' S.subjName '.out.mat']);
     test    = test.theData;
    
     S = SS2e_CodeTrials(S,run,study,test);
+    
+    % get event time stamps 
+    load([S.RawDataPath S.blocklist{run} '/Pdio' S.blocklist{run} '_02.mat']);
+    %load([S.RawDataPath S.blocklist{run} '/Pdio' S.blocklist{run} '_02_orig.mat']);
+    S.eventTimeStamps{run} = findEventMarkers(anlg, [study.stimFlip.VBLTimestamp]);
 end
+
 % 
 % for run = 1: S.nruns
 %     run_num = S.run_nums(run);
