@@ -1,19 +1,25 @@
 
 % Analysis of behavioral data for SS2 script
+% also stores markers for pre-proecessing
 % Apr 2014
 % A. Gonzl
 
 % dependencies:
-% ----
+% SS2e_subjInfo
+% SS2e_CodeTrials
+% findEventMarkers
 
 S =[];
 S.expt  = 'SS2e';
 S.subjName   = 'SRb';
 S = SS2e_subjInfo(S);
 
-S.dataPath      = ['/biac4/wagner/biac3/wagner7/ecog/subj' S.subjNum '/ecog/SS2/' ];
+%S.dataPath      = ['/biac4/wagner/biac3/wagner7/ecog/subj' S.subjNum '/ecog/SS2/' ];
+S.dataPath      = ['/Volumes/ECoG_SS2/SS2/data/' S.subjName '/' ];
 S.behavDataPath = [S.dataPath 'BehavData/'];
 S.RawDataPath   = [S.dataPath 'RawData/'];
+
+S.behavResPath = ['/Volumes/ECoG_SS2/SS2/Results/' S.subjName '/' ];
 
 StudyConds = {'Abs','Conc','CorrectAbs','InCorrectAbs', 'CorrectConc','InCorrectConc','noAnswer'};
 for i=1:numel(StudyConds)
@@ -35,11 +41,12 @@ for run = S.run_nums
     S = SS2e_CodeTrials(S,run,study,test);
     
     % get event time stamps 
-    load([S.RawDataPath S.blocklist{run} '/Pdio' S.blocklist{run} '_02.mat']);
-    %load([S.RawDataPath S.blocklist{run} '/Pdio' S.blocklist{run} '_02_orig.mat']);
+    load([S.RawDataPath S.blocklist{run} '/Pdio' S.blocklist{run} '_02.mat']);   
     S.eventTimeStamps{run} = findEventMarkers(anlg, [study.stimFlip.VBLTimestamp]);
 end
 
+if ~exist(S.behavResPath,'dir'), mkdir(S.behavResPath),end
+save([S.behavResPath 'behavResults'], 'S')
 % 
 % for run = 1: S.nruns
 %     run_num = S.run_nums(run);
