@@ -5,7 +5,8 @@
 %% preprocess data
 addpath PreProcessing/
 addpath lib/
-for s ={'24','28'}%s ={'16b','18','24','28'}
+addpath behavior/
+for s ={'24'}%s ={'16b','18','24','28'}
     preProcessRawData(s{1},'SS2e')
 end
 
@@ -15,7 +16,8 @@ addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
 %subjects = {'16b','18','24','28'};
-subjects = {'SRb','MD','LK','NC'};
+%subjects = {'SRb','MD','LK','NC'};
+subjects = {'LK'};
 %subjects = {'17b','19','29'};
 
 reference = 'nonLPCch'; nRefChans = 0; % using this nonLPC for now % 5/7/2014
@@ -138,7 +140,8 @@ addpath Analysis/
 addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
-subjects = {'SRb','MD','LK','NC'};
+%subjects = {'SRb','MD','LK','NC'};
+subjects = {'LK'};
 %subjects = {'16b','18','24','28'};
 %dateStr = '17-Jun-2013';
 %subjects = {'17b','19','29'};
@@ -161,7 +164,8 @@ addpath Analysis/
 addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
-subjects = {'SRb','MD','LK','NC'};
+%subjects = {'SRb','MD','LK','NC'};
+subjects = {'LK'};
 %subjects = {'16b','18','24','28'};
 %subjects = {'17b','19','29'};
 reference = 'nonLPCCh';

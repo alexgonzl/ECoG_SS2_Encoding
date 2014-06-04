@@ -61,7 +61,7 @@ switch subj
         S.TestKeys = cell(max(S.run_nums),numel(S.TestResposnes));
         for rr = 1:S.nruns
             S.StudyKeys(rr,:) = {'1','2'};
-            S.TestKeys (rr,:) = {'+','6','5','4'};
+            S.TestKeys (rr,:) = {'4','5','6','+'};
         end
     case {'28'  , 'NC'}
         S.subjNum   = '28';
