@@ -1,0 +1,49 @@
+function timeStamps = findEventMarkers(pDiodeSignal, matlabStamps)
+% returns the event time stamps (in seconds) of the photo diode signal
+% first input -> angl signal from photo diode
+% second input -> maltab stimulus samples (VBLTimeStamp)
+
+% defaults
+PD_SR   = 24414.1; % photo diode sampling rate
+stimDist = 1;    % minimum distance allowed between stims in seconds
+
+% correct signal for noise
+tic
+B     = fir1(300,0.1/PD_SR,'low');
+pDiodeSignal = filtfilt(B,1,double(pDiodeSignal));
+fprintf('\nCleaning pdiode signal: time elapsed %g\n',toc)
+
+% find indices of peaks that are at least Signal.stimDist*PD_SR apart (in
+% samples)
+[~,pDiodeStamps]=findpeaks(pDiodeSignal,'minpeakdistance',floor(stimDist*PD_SR));
+pDiodeStamps = pDiodeStamps/PD_SR;
+
+% match derivatives
+[c,lags]=crosscorr(diff(pDiodeStamps),diff(matlabStamps));
+[~,id]=max(c);
+
+ % two possibilities for optimal match (end or begining of pD series)
+timeStamps1=lagmatrix(pDiodeStamps,-lags(id)); 
+timeStamps1(isnan(timeStamps1))=[]; 
+timeStamps2=lagmatrix(pDiodeStamps,lags(id)); 
+timeStamps2(isnan(timeStamps2))=[]; 
+
+if corr(timeStamps1,matlabStamps')>corr(timeStamps2,matlabStamps')
+    timeStamps = timeStamps1;
+else
+    timeStamps = timeStamps2;
+end
+
+% if numel(timeStamps)~=numel(matlabStamps)
+%     % try matching in sample time instead
+%     [c2,lags2]=crosscorr(pDiodeStamps,matlabStamps);
+%     [~,id2]= max(c2);
+%     timeStamps=lagmatrix(pDiodeStamps,-lags2(id2)); 
+%     timeStamps(isnan(timeStamps))=[];    
+% end
+
+assert(numel(timeStamps)==numel(matlabStamps),'number of stamps do not match')
+assert(corr(timeStamps,matlabStamps')>0.99, 'bad match between diode and matlab samples')
+fprintf('Match between diode and matlab is: %g%% \n',corr(timeStamps,matlabStamps')*100)
+
+return
