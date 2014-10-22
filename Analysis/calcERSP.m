@@ -7,7 +7,7 @@ switch  data.lockType
         data.trialDur = [-0.2 1.5]; dur = data.trialDur;
         data.baseLine = [-0.2 0];
     case 'RT'
-        data.trialDur = [-1 0.2]; dur = data.trialDur;
+        data.trialDur = [-1 0.5]; dur = data.trialDur;
         % baseline period used from the stim locked data
 end
 
@@ -39,7 +39,7 @@ switch  data.lockType
     case 'stim'
         offset = zeros(nEvents,1);
     case 'RT'
-        offset = floor(data.allRTs*data.SR);
+        offset = floor(data.behavior.studyRTs*data.SR);
 end
 
 for ev = 1:nEvents

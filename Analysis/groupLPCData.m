@@ -42,8 +42,11 @@ data.ERP            = [];
 data.LPCchanId      = [];
 data.ROIid          = []; data.ROIs = {'IPS','SPL','AG'};
 data.subROIid       = []; data.subROIs = {'pIPS','aIPS','pSPL','aSPL'};
-data.RTquantiles    = [0.3 0.7]; % quanntiles for analysis
+data.RTquantiles    = [0.2 0.25 0.3 0.4 0.5 0.6 0.7 0.75 0.8]; % quanntiles for analysis
 
+data.condNames      = {'abstract','concrete','absResp','conResp',...
+                        'oldResp','newResp', 'Rem','Forg', ...
+                        'studyRTs','testRTs'};
 for s = 1:nSubjs
     
     dataIn = load([opts.dataPath subjects{s} '/' type fileName '.mat']);
@@ -65,15 +68,22 @@ for s = 1:nSubjs
     data.subROIid           = [data.subROIid; subROIid'];
     
     data.ERP{s}             = squeeze(dataIn.data.erp(temp.LPC,:,:));
+    data.behavior{s}        = dataIn.data.behavior;
     
-    data.remTrials{s}       = dataIn.data.behavior.subRem==1; % correctly remember trials
+    data.conds{s,1}         = data.behavior{s}.cond==1  ;  % objective abstract
+    data.conds{s,2}         = data.behavior{s}.cond==2  ;  % objective concrete
+    data.conds{s,3}         = data.behavior{s}.sResp==1 ;  % abstract response
+    data.conds{s,4}         = data.behavior{s}.sResp==2 ;  % concrete response
+    data.conds{s,5}         = data.behavior{s}.tResp<=2 ;  % old response at test
+    data.conds{s,6}         = data.behavior{s}.tResp>=2 ; % new response at test
+    data.conds{s,7}         = data.behavior{s}.subRem==1 ; % remembered 
+    data.conds{s,8}         = data.behavior{s}.subForg==1; % forgotten
+    data.conds{s,9}         = data.behavior{s}.studyRTs ;
+    data.conds{s,10}        = data.behavior{s}.testRTs ;
+                                
     data.testRTs{s}         = dataIn.data.behavior.testRTs;
     data.studyRTs{s}        = dataIn.data.behavior.studyRTs;
-    data.testRTsQuants{s}   = quantile(data.testRTs{s}(data.remTrials{s}),data.RTquantiles);
-    
-    data.subFastRem{s}      = data.remTrials{s} & (data.testRTs{s} <= data.testRTsQuants{s}(1));
-    data.subSlowRem{s}      = data.remTrials{s} & (data.testRTs{s} >= data.testRTsQuants{s}(2));
-    
+    data.testRTsQuants{s}   = quantile(data.testRTs{s}(data.conds{s,5}==1),data.RTquantiles);
 end
 
 nChans = numel(data.subjChans);
@@ -91,106 +101,58 @@ data.sldWin         = data.winSize;
 [data.BinSamps , data.Bins] = getBinSamps(data.winSize,data.sldWin,data.trialTime);
 data.nBins          = size(data.Bins,1);
 
-% pre allocation
-fields = {'ZStat','PValZ','mCond1','mCond2','zCond1','zCond2','cCond1','cCond2',...
-    'ZcCond1','ZcCond2','ZcStat'};
-
-for f = fields
-    data.(f{1}) = zeros(nChans,data.nTrialSamps);
-end
-
-fields2 = strcat('Bin',fields);
-for f = fields2
-    data.(f{1}) = zeros(nChans,data.nBins);
-end
+% % pre-allocation 
+% fields = {'ZStat','PValZ',...                           % 
+%         'mCond1','mCond2','zCond1','zCond2', ...
+%         'cCond1','cCond2','ZcCond1','ZcCond2','ZcStat'
+%         };
+% 
+% for f = fields
+%     data.(f{1}) = zeros(nChans,data.nTrialSamps);
+% end
+% 
+% fields2 = strcat('Bin',fields);
+% for f = fields2
+%     data.(f{1}) = zeros(nChans,data.nBins);
+% end
 
 ch = 1;
 data.BinERP     = cell(nSubjs,1);
 for s = 1:nSubjs
-    Cond1           = data.subFastRem{s};
-    Cond2           = data.subSlowRem{s};
-    RTs             = data.testRTs{s};
-    
+
+    RTs             = (data.testRTs{s});
     nTrials         = numel(RTs);
     nSubjChans      = data.nSubjLPCchans(s);
     
     data.BinERP{s}      = nan(nSubjChans,nTrials,data.nBins);
     
+    
+    
     for Sch = 1: data.nSubjLPCchans(s)
-        
-        % original sampled data
         Z       = squeeze(data.ERP{s}(Sch,:,:));
-        data    = getEffectScores(Z,RTs,Cond1,Cond2,data,ch,'');
-        
-        % binned
-        binERP  = binTrials(Z,data.BinSamps);
-        data.BinERP{s}(Sch,:,:) = binERP;
-        data    = getEffectScores(binERP,RTs,Cond1,Cond2,data,ch,'Bin');
-        
+        data.BinERP{s}(Sch,:,:) = binTrials(Z,data.BinSamps);
         ch = ch + 1;
     end
+%         % original sampled data
+%         Z       = squeeze(data.ERP{s}(Sch,:,:));
+%         data    = getEffectScores(Z,RTs,Cond1,Cond2,data,ch,'test');
+%         data    = getEffectScores(Z,RTs,Cond3,Cond4,data,ch,'study');
+%         data.RT_RemTrialsCorr(ch,:)   = corr(RTs(Cond5),Z(Cond5,:));
+%         data.RT_RemTrialsZCorr(ch,:)  = atanh(data.RT_RemTrialsCorr(ch,:))*sqrt(nC3-3);
+%         
+%         % binned
+%         binERP  = binTrials(Z,data.BinSamps);
+%         data.BinERP{s}(Sch,:,:) = binERP;
+%         data    = getEffectScores(binERP,RTs,Cond1,Cond2,data,ch,'BinTest');
+%         data    = getEffectScores(binERP,RTs,Cond1,Cond2,data,ch,'BinStudy');
+%         data.BinRT_RemTrialsCorr(ch,:) = corr(RTs(Cond5),binERP(Cond5,:));
+%         data.BinRT_RemTrialsZCorr(ch,:) = atanh(data.BinRT_RemTrialsCorr(ch,:))*sqrt(nC3-3);
+%         
+%        ch = ch + 1;
+%    end
+end
 end
 
-% channel by hemisphere id; 1 for lefts, 2 for rights
-%data.hemChanId  = ismember(data.subjChans,find(strcmp(opts.hemId,'r')))'+1;
-
-% % obtain group level roi main effects
-% data.mainEfpValROIs = zeros(3,data.nBigBins,2);
-% for hem = 1:2
-%     for r   = 1: numel(data.ROIs)
-%         chans = (data.ROIid == r) & (data.hemChanId == hem);
-%         [~,data.mainEfpValROIs(r,:,hem)] = ttest(data.BinZStat(chans,:));
-%     end
-% end
-%
-% % obtain group level roi comparison statistics
-% % three comparsions:
-% data.ROIcontrasts       =  {'AG', 'IPS' ;'AG' ,'SPL';'IPS','SPL'};
-% data.contrEfpValROIs    = zeros(3,data.nBins,2);
-% for hem = 1:2
-%     for rc = 1:size(data.ROIcontrasts,1)
-%         r1 = find(strcmp(data.ROIcontrasts(rc,1),data.ROIs));
-%         r2 = find(strcmp(data.ROIcontrasts(rc,2),data.ROIs));
-%         chans1 = (data.ROIid == r1) & (data.hemChanId == hem);
-%         chans2 = (data.ROIid == r2) & (data.hemChanId == hem);
-%         [~,data.contrEfpValROIs(rc,:,hem)] = ttest2(data.BinZStat(chans1,:),data.BinZStat(chans2,:));
-%     end
-% end
-
-% subject channel information
-% for s = 1:nSubjs
-%     subjChans = data.LPCchanId(data.subjChans==s);
-%     temp = load(['./lib/elecLocs/subj' subjects{s} '_mni_elcoord_corrected.mat'],'mni_elcoord');
-%     data.MNIlocsSubj{s} = temp.mni_elcoord(subjChans,:);
-%     temp = load(['./lib/elecLocs/subj' subjects{s} '_electrodes_surface_loc_all1_correctnumbering.mat']);
-%     data.OrigLocsSubj{s} = temp.elecmatrix(subjChans,:);
-%     temp = load(['./lib/elecLocs/subj' subjects{s} '_cortex.mat']);
-%     data.cortex{s} = temp.cortex;
-% end
-% 
-% data.MNILocs = []; data.subjLocs = [];
-% for s = 1:nSubjs
-%     data.MNILocs = vertcat(data.MNILocs, data.MNIlocsSubj{s});
-%     data.subjLocs = vertcat(data.subjLocs, data.OrigLocsSubj{s});
-% end
-% 
-% switch data.options.hems
-%     case 'l'
-%         temp = load('./lib/elecLocs/MNI_cortex_left');
-%         data.MNIcortex = temp.cortex;
-%     case 'r'
-%         temp = load('./lib/elecLocs/MNI_cortex_right');
-%         data.MNIcortex = temp.cortex;
-%     otherwise
-%         temp = load('./lib/elecLocs/MNI_cortex_left');
-%         data.lMNIcortex = temp.cortex;
-%         temp = load('./lib/elecLocs/MNI_cortex_right');
-%         data.rMNIcortex = temp.cortex;
-%         temp = load('./lib/elecLocs/MNI_cortex_both');
-%         data.MNIcortex = temp.cortex;
-% end
-
-end
 function binZ = binTrials(Z,samps)
 nT = size(Z,1);
 nB = size(samps,1);

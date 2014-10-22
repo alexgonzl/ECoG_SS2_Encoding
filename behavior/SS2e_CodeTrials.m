@@ -54,8 +54,8 @@ assert(mean(isnan(testRTs)==isnan(tResp))==1, 'respones don''t match the recorde
 S.sResp     = [S.sResp  ; sResp];
 S.tResp     = [S.tResp  ; tResp];
 
-S.subRem    = [S.subRem     ; (tResp==1 | tResp==2)];
-S.subForg   = [S.subForg    ; (tResp==3 | tResp==4)];
+S.subRem    = [S.subRem     ; (tResp==1 | tResp==2)]; % responded old (hit)
+S.subForg   = [S.subForg    ; (tResp==3 | tResp==4)]; % responded as new (miss)
 
 S.sConds.Abs            = [S.sConds.Abs             ; (studyCond==1)];
 S.sConds.CorrectAbs     = [S.sConds.CorrectAbs      ; (sResp==1)&(studyCond==1)];

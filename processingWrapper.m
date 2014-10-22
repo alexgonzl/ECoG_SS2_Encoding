@@ -164,15 +164,15 @@ addpath Analysis/
 addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
-%subjects = {'SRb','MD','LK','NC'};
-subjects = {'LK'};
+subjects = {'SRb','MD','LK','NC'};
+%subjects = {'LK'};
 %subjects = {'16b','18','24','28'};
 %subjects = {'17b','19','29'};
 reference = 'nonLPCCh';
 %reference = 'nonLPCleasL1TvalCh'; nRefChans = 10;
 %reference = 'allChCAR'; nRefChans = 0;
 
-lockType     = 'stim'; %{'stim','RT'}
+lockType     = 'RT'; %{'stim','RT'}
 analysisType = 'logPower';%{'Amp','Power', 'logPower'};
 baselineType = 'sub';%{'rel','sub'}
 
@@ -191,14 +191,17 @@ for s = subjects
                 save([dataPath s{1}  '/Spectral_Data/' band{1} '/ERSPs' band{1} 'stimLock' baselineType analysisType ...
                     reference '.mat'],'data')
                 
-            case 'RT' % to do...  5/7/2014
-                %                 % load stim locked data
-                %                 dataIn2 = load([dataPath 'Spectral_Data/subj' s{1} '/ERSPs' band{1} 'stimLock' baselineType analysisType ...
-                %                     reference num2str(nRefChans) '.mat']);
-                %                 dataIn.data.baseLineMeans = dataIn2.data.baseLineMeans; dataIn2=[];
-                %                 data = calcERSP(dataIn.data);
-                %                 save([dataPath 'Spectral_Data/subj' s{1} '/ERSPs' band{1} 'RTLock' baselineType analysisType ...
-                %                     reference num2str(nRefChans) '.mat'],'data')
+            case 'RT'
+                % load the stim first
+                stimdata = load( [dataPath s{1}  '/Spectral_Data/' band{1} '/ERSPs' band{1} 'stimLock' baselineType analysisType ...
+                    reference '.mat'],'data');
+                dataIn.data.baseLineMeans = stimdata.data.baseLineMeans;
+                data = calcERSP(dataIn.data);
+                if ~exist([dataPath s{1}  '/Spectral_Data/' band{1} '/'],'dir');
+                    mkdir([dataPath s{1}  '/Spectral_Data/' band{1} '/']);
+                end;
+                save([dataPath s{1}  '/Spectral_Data/' band{1} '/ERSPs' band{1} 'RTLock' baselineType analysisType ...
+                    reference '.mat'],'data')
         end
     end
 end
@@ -238,7 +241,7 @@ bands = {'hgam'};
 
 opts                = [];
 opts.hems           = 'all';
-opts.lockType       = 'stim';
+opts.lockType       = 'RT';
 opts.reference      = 'nonLPCCh';
 %opts.subjects       = {'16b','18','24','28','17b','19', '29'};
 opts.subjects       = {'SRb','MD','LK','NC'};
@@ -251,9 +254,9 @@ for ba = 1:numel(bands)
     fileName    = [opts.hems data.prefix 'Group' data.extension];
     
     if strcmp(opts.band,'erp')
-        savePath = [dataPath 'group/ERP_Data/'];
+        savePath = [opts.dataPath 'group/ERP_Data/'];
     else
-        savePath = [dataPath 'group/Spectral_Data/'];
+        savePath = [opts.dataPath 'group/Spectral_Data/'];
     end
     
     if ~exist(savePath,'dir'); mkdir(savePath); end;
