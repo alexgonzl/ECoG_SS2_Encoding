@@ -8,7 +8,7 @@ dirPath       = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 fileName = 'allERSPshgamGroupstimLocksublogPowernonLPCCh';
 
 dataPath = [dirPath 'group/Spectral_Data/'];
-load([savePath fileName '.mat'])
+load([dataPath fileName '.mat'])
 
 % channel groupings/ROIs
 nChans = numel(data.ROIid);
@@ -37,7 +37,7 @@ switch AnalysisNum
         X 		= subSelectByCell(data.BinERP,cond1);
         Y 		= subSelectByCell(data.BinERP,cond2);
         
-        stats = statsWrapper(X,Y,groups);
+        stats = BiVariateStatsWrapper(X,Y,groups);
         
         info.rownames 	= cellstr(strcat('BinCenter',num2str(mean(data.Bins,2),3)));
         info.groupNames = {'IPS','SPL','AG'};
@@ -83,7 +83,7 @@ switch AnalysisNum
         X 		= subSelectByCell(data.BinERP,cond1);
         Y 		= subSelectByCell(data.BinERP,cond2);
         
-        stats = statsWrapper(X,Y,groups);
+        stats = BiVariateStatsWrapper(X,Y,groups);
         
         info.rownames 	= cellstr(strcat('BinCenter',num2str(mean(data.Bins,2),3)));
         info.groupNames = {'IPS','SPL','AG'};
@@ -129,7 +129,7 @@ switch AnalysisNum
         X 		= subSelectByCell(data.BinERP,cond1);
         Y 		= subSelectByCell(data.BinERP,cond2);
         
-        stats = statsWrapper(X,Y,groups);
+        stats = BiVariateStatsWrapper(X,Y,groups);
         
         info.rownames 	= cellstr(strcat('BinCenter',num2str(mean(data.Bins,2),3)));
         info.groupNames = {'IPS','SPL','AG'};
@@ -165,8 +165,43 @@ switch AnalysisNum
 
 %% activity set 2: correlation to test RTs activity
     case 4 
-
-            
+        %% overall correlation
+        info            =[];
+        info.Analysis   = 'stimHGP_testRTcorr';
+        info.groupNames = {'IPS','SPL','AG'};
+        info.legend 	= info.groupNames;
         
+        X = CorrByCell(data.BinERP,cellfun(@log10,data.testRTs,'uniformoutput',0));
+        X = cellfun(@atanh,X,'uniformoutput',0); % convet to continous
+        X = [X{:}]';
+        
+        stats = statsWrapperMat(X,groups);
+        info.rownames 	= cellstr(strcat('BinCenter',num2str(mean(data.Bins,2),3)));
+        
+        info.savePath 	= '/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/Results/Logs/';
+        printStats(stats,info)
+        
+        t = mean(data.Bins,2);
+        Z =[];
+        Z{1} = X(groups==1,:);
+        Z{2} = X(groups==2,:);
+        Z{3} = X(groups==3,:);
+        
+        info.cols 		= 'rbg';
+        info.savePath 	= '/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/Results/Plots/';
+        info.fileName 	= strcat(info.Analysis,'AllROIs');
+        plotWrapper(Z,t,info)
+        
+        t = mean(data.Bins,2);
+        Z =[];
+        Z{1} = repmat(stats.groupScores(1,:),[3,1]); % hard coded for now.
+        Z{2} = repmat(stats.groupScores(2,:),[3,1]);
+        Z{3} = repmat(stats.groupScores(3,:),[3,1]);
+        
+        info.cols 		= 'rbg';
+        info.savePath 	= '/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/Results/Plots/';
+        info.fileName 	= strcat(info.Analysis,'AllROIsScores');
+        plotWrapper(Z,t,info)
+            
 end
 

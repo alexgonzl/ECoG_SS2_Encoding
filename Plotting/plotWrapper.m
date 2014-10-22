@@ -36,8 +36,12 @@ h = plotNTraces(X,t,'cols',info.cols,...
 		'centerType',info.centerType,'errorBars',info.errorBars,...
 		'yLimits',info.yLimits);
 
+mainLines = zeros(numel(X),1);
+for ii = 1:numel(X)
+    mainLines(ii) = h.(['h' num2str(ii)]).mainLine;
+end
  if isfield(info,'legend')
-     l = legend([h.h1.mainLine h.h2.mainLine], info.legend,'location','best');
+     l = legend(mainLines, info.legend,'location','best');
      set(l,'box','off')
  end
  

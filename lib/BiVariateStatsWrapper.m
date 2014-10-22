@@ -1,6 +1,6 @@
-function out = statsWrapperMat(X,groups)
+function out = BiVariateStatsWrapper(X,Y,groups)
 %
-% X -> matrix array
+% X & Y -> cell array containing a data matrix per channel
 % the data matrix should have the same number of columns (time dimension)
 % the rows represent trials, which can be different by channel (different subjects)
 %
@@ -10,6 +10,7 @@ function out = statsWrapperMat(X,groups)
 % groups is a vector indicating which channels are to be grouped, indicated by 
 % a cardinal numnber
 %
+% channel wise statistics are a based on median differences (i.e. ranksum/ wilcoxon tests)
 % group based statistics are baed on mean tests (i.e. t-tests)
 %
 
@@ -17,9 +18,11 @@ function out = statsWrapperMat(X,groups)
 assert(iscell(X) && iscell(X),'incorrect input type')
 
 nChans = numel(X);
+assert(nChans==numel(Y),'number of channels does not match between X and Y')
 assert(nChans==numel(groups),'number of channels in groups does not match data')
 
 nBins = size(X{1},2);
+assert(nBins==size(Y{1},2),'number of channels does not match between X and Y')
 
 % get channel wise scores and p-values
 out = [];
@@ -27,8 +30,7 @@ out.chanScores = zeros(nChans,nBins);
 out.chanPVals = zeros(nChans,nBins);
 
 for iChans = 1:nChans	
-    [~,out.chanPVals(iChans,:),~,temp] = ttest(X{iChans});
-    out.chanScore(iChans,:) = temp.tstat;
+    [out.chanPVals(iChans,:),out.chanScore(iChans,:)] = ranksum2(X{iChans},Y{iChans});
 end
 
 % get group statistcs

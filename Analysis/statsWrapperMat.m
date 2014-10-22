@@ -2,9 +2,7 @@ function out = statsWrapperMat(X,groups)
 %
 % X -> matrix array
 % the data matrix should have the same number of columns (time dimension)
-% the rows represent trials, which can be different by channel (different subjects)
-%
-% Analysis are first performed on a channel basis to obtain a channel wise summary 
+% the rows represent channels
 %
 % the second level is on a channel grouping basis 
 % groups is a vector indicating which channels are to be grouped, indicated by 
@@ -13,23 +11,14 @@ function out = statsWrapperMat(X,groups)
 % group based statistics are baed on mean tests (i.e. t-tests)
 %
 
-% basic assertions about the data:
-assert(iscell(X) && iscell(X),'incorrect input type')
-
-nChans = numel(X);
+nChans = size(X,1);
 assert(nChans==numel(groups),'number of channels in groups does not match data')
 
-nBins = size(X{1},2);
+nBins = size(X,2);
 
 % get channel wise scores and p-values
 out = [];
-out.chanScores = zeros(nChans,nBins);
-out.chanPVals = zeros(nChans,nBins);
-
-for iChans = 1:nChans	
-    [~,out.chanPVals(iChans,:),~,temp] = ttest(X{iChans});
-    out.chanScore(iChans,:) = temp.tstat;
-end
+out.chanScore = X;
 
 % get group statistcs
 out.groups 			= groups;
