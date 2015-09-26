@@ -4,7 +4,8 @@
 
 load('/Volumes/ECoG_SS2/SS2/SS2e/Results/group/Spectral_Data/allERSPshgamGroupstimLocksublogPowernonLPCCh.mat')
 rRTs = log10(cell2mat(data.testRTs'));
-
+IPSch = data.hemChan==1 & data.ROIid==1;
+SPLch = data.hemChan==1 & data.ROIid==2;
 %% Activity in IPS split by fast/slow
 
 X = [];

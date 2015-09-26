@@ -4,6 +4,9 @@ function S = SS2e_CodeTrials(S,run,study,test)
 nItems   = numel(study.item);
 % get indices of study items in the test data
 [~,b]   = ismember(study.item,test.item);
+
+% store study IDs at test, and test IDs at study.
+S.studyIDatTest = [S.studyIDatTest; b+(run-1)*numel(test.item)];
 % update all the test data to only the ones that were at encoding, i.e. old
 % items
 testFields = {'item','cond','stimRT','poststimRT','stimresp','poststimresp'};
@@ -47,20 +50,15 @@ tResp   = codeCondition(test.stimresp,tKeys);
 temp    = codeCondition(test.poststimresp,tKeys);
 tResp(~isnan(temp)) = temp(~isnan(temp));
 
-assert(mean(isnan(studyRTs)==isnan(sResp))==1, 'respones don''t match the recorded RTs') 
-assert(mean(isnan(testRTs)==isnan(tResp))==1, 'respones don''t match the recorded RTs') 
+%assert(mean(isnan(studyRTs)==isnan(sResp))==1, 'respones don''t match the recorded RTs') 
+%assert(mean(isnan(testRTs)==isnan(tResp))==1,  'respones don''t match the recorded RTs') 
 
 % code responses
 S.sResp     = [S.sResp  ; sResp];
 S.tResp     = [S.tResp  ; tResp];
 
-<<<<<<< HEAD
 S.subRem    = [S.subRem     ; (tResp==1 | tResp==2)]; % responded old (hit)
 S.subForg   = [S.subForg    ; (tResp==3 | tResp==4)]; % responded as new (miss)
-=======
-S.subRem    = [S.subRem     ; (tResp==1 | tResp==2)];
-S.subForg   = [S.subForg    ; (tResp==3 | tResp==4)];
->>>>>>> 7749784abab379f5dd449da6970cb3fa6283bcf1
 
 S.sConds.Abs            = [S.sConds.Abs             ; (studyCond==1)];
 S.sConds.CorrectAbs     = [S.sConds.CorrectAbs      ; (sResp==1)&(studyCond==1)];

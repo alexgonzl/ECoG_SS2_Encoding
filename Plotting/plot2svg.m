@@ -13,7 +13,7 @@ function varargout = plot2svg(param1,id,pixelfiletype)
 %
 %  Juerg Schwizer 23-Oct-2005
 %  See http://www.zhinst.com/blogs/schwizer/ to get more informations
-%
+
 %  07.06.2005 - Bugfix axxindex (Index exceeds matrix dimensions)
 %  19.09.2005 - Added possibility to select output format of pixel graphics
 %  23.10.2005 - Bugfix cell array strings (added by Bill)
@@ -29,7 +29,7 @@ function varargout = plot2svg(param1,id,pixelfiletype)
 %               Clipping
 %               Minor tick marks
 %  22.01.2005 - Removed unused 'end'
-%  29.10.2006 - Bugfix '°','±','µ','²','³','¼''½','¾','©''®'
+%  29.10.2006 - Bugfix '?','?','?','?','?','?''?','?','?''?'
 %  17-04-2007 - Bugfix 'projection' in hggroup and hgtransform
 %  27-01-2008 - Added Octave functionality (thanks to Jakob Malm)
 %               Bugfixe cdatamapping (thanks to Tom)
@@ -90,8 +90,8 @@ function varargout = plot2svg(param1,id,pixelfiletype)
 %             - Tiny optimization of the grid display at axis borders
 %  25-08-2011 - Fix for degree character (thanks to Manes Recheis)
 %             - Fix for problems with dash-arrays in Inkscape (thanks to
-%               Rüdiger Stirnberg)
-%             - Modified shape of driangles (thanks to Rüdiger Stirnberg)
+%               R?diger Stirnberg)
+%             - Modified shape of driangles (thanks to R?diger Stirnberg)
 %  22-10-2011 - Removed versn as return value of function fileparts (thanks
 %               to Andrew Scott)
 %             - Fix for images (thanks to Roeland)
@@ -104,10 +104,15 @@ function varargout = plot2svg(param1,id,pixelfiletype)
 %             - Fix for another axis label problem (thanks to Ben Mitch)
 %  15-09-2012 - Fix for linestyle none of rectangles (thanks to Andrew)
 %             - Enabled scatter plot functionality
+%  16-02-2013 - Fix for manual tick labels if count differs from
+%               number of ticks (thanks to Anna)
+%  18-07-2013 - Small fix to exclude change log from help
+%               (thanks to Stuart Layton)
+%  30-11-2014 - Preliminary partial support for contour objects
 
 global PLOT2SVG_globals
 global colorname
-progversion='15-Sep-2012';
+progversion='16-Feb-2013';
 PLOT2SVG_globals.runningIdNumber = 0;
 PLOT2SVG_globals.octave = false;
 PLOT2SVG_globals.checkUserData = true;
@@ -1059,6 +1064,10 @@ if strcmp(get(ax,'Visible'),'on')
 end
 fprintf(fid,'    <g>\n');
 axchild=get(ax,'Children');
+if ~verLessThan('matlab','8.4.0')
+    % Matlab h2 engine
+    axchild = [axchild; ax.Title; ax.XLabel; ax.YLabel; ax.ZLabel];
+end
 group = axchild2svg(fid,id,axIdString,ax,group,paperpos,axchild,axpos,groupax,projection,boundingBoxAxes);
 fprintf(fid,'    </g>\n');
 if strcmp(get(ax,'Visible'),'on')
@@ -1189,6 +1198,9 @@ if strcmp(get(ax,'Visible'),'on')
                 % Note: 3D plot do not support the property XAxisLocation
                 % setting 'top'.
                 [angle, align] = improvedXLabel(ax, 0, 'Center');
+                if (strcmp(get(ax,'XTickLabelMode'),'manual'))
+                    axlabelx = axlabelx(axxindex,:);
+                end
                 if strcmp(get(ax,'XAxisLocation'),'top') && (projection.xyplane == true)
                     for i = 1:length(axxindex)
                         label2svg(fid,grouplabel,axpos,ax,xg_label_end(i),yg_label_end(i),convertString(axlabelx(i,:)),align,angle,'bottom',1,paperpos,scolorname,exponent);
@@ -1246,6 +1258,9 @@ if strcmp(get(ax,'Visible'),'on')
                 end
                 % Note: 3D plot do not support the property YAxisLocation
                 % setting 'right'.
+                if (strcmp(get(ax,'YTickLabelMode'),'manual'))
+                    axlabely = axlabely(axyindex,:);
+                end
                 if (projection.xyplane == true)
                     if strcmp(get(ax,'YAxisLocation'),'right')
                         [angle, align] = improvedYLabel(ax, 0, 'Left');
@@ -1311,6 +1326,9 @@ if strcmp(get(ax,'Visible'),'on')
                     % for all ticks. Strange behavior but follows the
                     % behavior of Matlab
                     axlabelz = repmat(axlabelz, length(axzindex), 1);
+                end
+                if (strcmp(get(ax,'ZTickLabelMode'),'manual'))
+                    axlabelz = axlabelz(axzindex,:);
                 end
                 for i = 1:length(axzindex)
                     label2svg(fid,grouplabel,axpos,ax,xg_label_end(i),yg_label_end(i),convertString(axlabelz(i,:)),'Right',0,'middle',1,paperpos,scolorname,exponent);
@@ -1429,6 +1447,57 @@ for i=length(axchild):-1:1
         animation2svg(fid, axchild(i));
         % close the line group
         fprintf(fid,'</g>\n');
+    elseif strcmp(get(axchild(i),'Type'),'contour')
+        clim = get(ax,'CLim');
+        cmap = get(id,'Colormap');
+        c = get(axchild(i),'ContourMatrix');
+        linestyle = get(axchild(i),'LineStyle');
+        linewidth = get(axchild(i),'LineWidth');
+        edge_opacity = 1.0;
+        face_opacity = 1.0;
+        index = 1;
+        while index < size(c,2)
+            patchIndices = (1:c(2,index))+index;
+            % Close a patch if the coordinates do not contain NaNs 
+            x = c(1,patchIndices);
+            y = c(2,patchIndices);
+            if (x(1) == x(end)) && (y(1) == y(end))
+                closed = true;
+            else
+                closed = false;
+            end            
+            [x,y,z] = project(x,y,ones(1,c(2,index))*c(1,index),projection);
+            x = (x*axpos(3)+axpos(1))*paperpos(3);
+            y = (1-(y*axpos(4)+axpos(2)))*paperpos(4);
+            pointc = c(1,index);
+            pointc = round((pointc-clim(1))/(clim(2)-clim(1))*(size(cmap,1)-1)+1);
+            % Limit index to smallest or biggest color index
+            pointc = max(pointc,1);
+            pointc = min(pointc,size(cmap,1));
+            if ischar(get(axchild(i),'LineColor'))
+                if strcmp(get(axchild(i),'LineColor'),'none')
+                    edgecolorname = 'none';
+                else
+                    edgecolor = c(1,index);
+                    if ~isnan(edgecolor)
+                        if strcmp(get(axchild(i),'LineColor'),'flat')   % Bugfix 27.01.2008
+                            edgecolorname = searchcolor(id,cmap(pointc,:));
+                        else
+                            edgecolorname = searchcolor(id,edgecolor);
+                        end
+                    else
+                        edgecolorname = 'none';
+                    end
+                end
+            else
+                edgecolorname = searchcolor(id,get(axchild(i),'EdgeColor'));       
+            end
+            if strcmp(get(axchild(i),'Fill'),'on')
+                facecolorname = searchcolor(id,cmap(pointc,:));
+            end
+            patch2svg(fid, group, axpos, x, y, facecolorname, linestyle, linewidth, edgecolorname, face_opacity, edge_opacity, closed)
+            index = index+c(2,index)+1;
+        end
     elseif strcmp(get(axchild(i),'Type'),'patch')
         flat_shading = 1;
         cmap=get(id,'Colormap');
@@ -2426,7 +2495,10 @@ if strcmp(get(ax,'XTickLabelMode'),'auto') && strcmp(get(ax,'XScale'),'linear')
             numlabels(ix) = str2num(axlabelx{ix});
         end
     else
-        numlabels = str2num(get(ax,'XTickLabel'));
+        numlabels = get(ax,'XTickLabel');
+        if ~isempty(numlabels)
+          numlabels = str2double(numlabels);
+        end
     end
     labelpos = axxtick;%get(ax,'XTick');
     numlabels = numlabels(:);
@@ -2451,7 +2523,10 @@ if strcmp(get(ax,'YTickLabelMode'),'auto') && strcmp(get(ax,'YScale'),'linear')
             numlabels(ix) = str2num(axlabely{ix});
         end        
     else
-        numlabels = str2num(get(ax,'YTickLabel'));
+        numlabels = get(ax,'YTickLabel');
+        if ~isempty(numlabels)
+          numlabels = str2double(numlabels);
+        end
     end
     labelpos = axytick;%get(ax,'YTick');
     numlabels = numlabels(:);
@@ -2476,7 +2551,10 @@ if strcmp(get(ax,'ZTickLabelMode'),'auto') && strcmp(get(ax,'ZScale'),'linear')
             numlabels(ix) = str2num(axlabelz{ix});
         end
     else
-        numlabels = str2num(get(ax,'ZTickLabel'));
+        numlabels = get(ax,'ZTickLabel');
+        if ~isempty(numlabels)
+          numlabels = str2double(numlabels); 
+        end
     end
     labelpos = axztick;%get(ax,'ZTick');
     numlabels = numlabels(:);
@@ -2887,83 +2965,83 @@ if ~isempty(StringText)
     StringText=strrep(StringText,'>','&gt;');
     StringText=strrep(StringText,'"','&quot;');
     % Workaround for Firefox and Inkscape
-    StringText=strrep(StringText,'°','&#176;');
-    %StringText=strrep(StringText,'°','&deg;');
-    StringText=strrep(StringText,'±','&plusmn;');
-    StringText=strrep(StringText,'µ','&micro;');
-    StringText=strrep(StringText,'²','&sup2;');
-    StringText=strrep(StringText,'³','&sup3;');
-    StringText=strrep(StringText,'¼','&frac14;');
-    StringText=strrep(StringText,'½','&frac12;');
-    StringText=strrep(StringText,'¾','&frac34;');
-    StringText=strrep(StringText,'©','&copy;');
-    StringText=strrep(StringText,'®','&reg;');
+    StringText=strrep(StringText,'?','&#176;');
+    %StringText=strrep(StringText,'?','&deg;');
+    StringText=strrep(StringText,'?','&plusmn;');
+    StringText=strrep(StringText,'?','&micro;');
+    StringText=strrep(StringText,'?','&sup2;');
+    StringText=strrep(StringText,'?','&sup3;');
+    StringText=strrep(StringText,'?','&frac14;');
+    StringText=strrep(StringText,'?','&frac12;');
+    StringText=strrep(StringText,'?','&frac34;');
+    StringText=strrep(StringText,'?','&copy;');
+    StringText=strrep(StringText,'?','&reg;');
     if any(StringText > 190)
-        StringText=strrep(StringText,'¿','&#191;');
-        StringText=strrep(StringText,'À','&#192;');
-        StringText=strrep(StringText,'Á','&#193;');
-        StringText=strrep(StringText,'Â','&#194;');
-        StringText=strrep(StringText,'Ã','&#195;');
-        StringText=strrep(StringText,'Ä','&#196;');
-        StringText=strrep(StringText,'Å','&#197;');
-        StringText=strrep(StringText,'Æ','&#198;');
-        StringText=strrep(StringText,'Ç','&#199;');
-        StringText=strrep(StringText,'È','&#200;');
-        StringText=strrep(StringText,'É','&#201;');
-        StringText=strrep(StringText,'Ê','&#202;');
-        StringText=strrep(StringText,'Ë','&#203;');
-        StringText=strrep(StringText,'Ì','&#204;');
-        StringText=strrep(StringText,'Í','&#205;');
-        StringText=strrep(StringText,'Î','&#206;');
-        StringText=strrep(StringText,'Ï','&#207;');
-        StringText=strrep(StringText,'Ð','&#208;');
-        StringText=strrep(StringText,'Ñ','&#209;');
-        StringText=strrep(StringText,'Ò','&#210;');
-        StringText=strrep(StringText,'Ó','&#211;');
-        StringText=strrep(StringText,'Ô','&#212;');
-        StringText=strrep(StringText,'Õ','&#213;');
-        StringText=strrep(StringText,'Ö','&#214;');
-        StringText=strrep(StringText,'×','&#215;');
-        StringText=strrep(StringText,'Ø','&#216;');
-        StringText=strrep(StringText,'Ù','&#217;');
-        StringText=strrep(StringText,'Ú','&#218;');
-        StringText=strrep(StringText,'Û','&#219;');
-        StringText=strrep(StringText,'Ü','&#220;');
-        StringText=strrep(StringText,'Ý','&#221;');
-        StringText=strrep(StringText,'Þ','&#222;');
-        StringText=strrep(StringText,'ß','&#223;');
-        StringText=strrep(StringText,'à','&#224;');
-        StringText=strrep(StringText,'á','&#225;');
-        StringText=strrep(StringText,'â','&#226;');
-        StringText=strrep(StringText,'ã','&#227;');
-        StringText=strrep(StringText,'ä','&#228;');
-        StringText=strrep(StringText,'å','&#229;');
-        StringText=strrep(StringText,'æ','&#230;');
-        StringText=strrep(StringText,'ç','&#231;');
-        StringText=strrep(StringText,'è','&#232;');
-        StringText=strrep(StringText,'é','&#233;');
-        StringText=strrep(StringText,'ê','&#234;');
-        StringText=strrep(StringText,'ë','&#235;');
-        StringText=strrep(StringText,'ì','&#236;');
-        StringText=strrep(StringText,'í','&#237;');
-        StringText=strrep(StringText,'î','&#238;');
-        StringText=strrep(StringText,'ï','&#239;');
-        StringText=strrep(StringText,'ð','&#240;');
-        StringText=strrep(StringText,'ñ','&#241;');
-        StringText=strrep(StringText,'ò','&#242;');
-        StringText=strrep(StringText,'ó','&#243;');
-        StringText=strrep(StringText,'ô','&#244;');
-        StringText=strrep(StringText,'õ','&#245;');
-        StringText=strrep(StringText,'ö','&#246;');
-        StringText=strrep(StringText,'÷','&#247;');
-        StringText=strrep(StringText,'ø','&#248;');
-        StringText=strrep(StringText,'ù','&#249;');
-        StringText=strrep(StringText,'ú','&#250;');
-        StringText=strrep(StringText,'û','&#251;');
-        StringText=strrep(StringText,'ü','&#252;');
-        StringText=strrep(StringText,'ý','&#253;');
-        StringText=strrep(StringText,'þ','&#254;');
-        StringText=strrep(StringText,'ÿ','&#255;');
+        StringText=strrep(StringText,'?','&#191;');
+        StringText=strrep(StringText,'?','&#192;');
+        StringText=strrep(StringText,'?','&#193;');
+        StringText=strrep(StringText,'?','&#194;');
+        StringText=strrep(StringText,'?','&#195;');
+        StringText=strrep(StringText,'?','&#196;');
+        StringText=strrep(StringText,'?','&#197;');
+        StringText=strrep(StringText,'?','&#198;');
+        StringText=strrep(StringText,'?','&#199;');
+        StringText=strrep(StringText,'?','&#200;');
+        StringText=strrep(StringText,'?','&#201;');
+        StringText=strrep(StringText,'?','&#202;');
+        StringText=strrep(StringText,'?','&#203;');
+        StringText=strrep(StringText,'?','&#204;');
+        StringText=strrep(StringText,'?','&#205;');
+        StringText=strrep(StringText,'?','&#206;');
+        StringText=strrep(StringText,'?','&#207;');
+        StringText=strrep(StringText,'?','&#208;');
+        StringText=strrep(StringText,'?','&#209;');
+        StringText=strrep(StringText,'?','&#210;');
+        StringText=strrep(StringText,'?','&#211;');
+        StringText=strrep(StringText,'?','&#212;');
+        StringText=strrep(StringText,'?','&#213;');
+        StringText=strrep(StringText,'?','&#214;');
+        StringText=strrep(StringText,'?','&#215;');
+        StringText=strrep(StringText,'?','&#216;');
+        StringText=strrep(StringText,'?','&#217;');
+        StringText=strrep(StringText,'?','&#218;');
+        StringText=strrep(StringText,'?','&#219;');
+        StringText=strrep(StringText,'?','&#220;');
+        StringText=strrep(StringText,'?','&#221;');
+        StringText=strrep(StringText,'?','&#222;');
+        StringText=strrep(StringText,'?','&#223;');
+        StringText=strrep(StringText,'?','&#224;');
+        StringText=strrep(StringText,'?','&#225;');
+        StringText=strrep(StringText,'?','&#226;');
+        StringText=strrep(StringText,'?','&#227;');
+        StringText=strrep(StringText,'?','&#228;');
+        StringText=strrep(StringText,'?','&#229;');
+        StringText=strrep(StringText,'?','&#230;');
+        StringText=strrep(StringText,'?','&#231;');
+        StringText=strrep(StringText,'?','&#232;');
+        StringText=strrep(StringText,'?','&#233;');
+        StringText=strrep(StringText,'?','&#234;');
+        StringText=strrep(StringText,'?','&#235;');
+        StringText=strrep(StringText,'?','&#236;');
+        StringText=strrep(StringText,'?','&#237;');
+        StringText=strrep(StringText,'?','&#238;');
+        StringText=strrep(StringText,'?','&#239;');
+        StringText=strrep(StringText,'?','&#240;');
+        StringText=strrep(StringText,'?','&#241;');
+        StringText=strrep(StringText,'?','&#242;');
+        StringText=strrep(StringText,'?','&#243;');
+        StringText=strrep(StringText,'?','&#244;');
+        StringText=strrep(StringText,'?','&#245;');
+        StringText=strrep(StringText,'?','&#246;');
+        StringText=strrep(StringText,'?','&#247;');
+        StringText=strrep(StringText,'?','&#248;');
+        StringText=strrep(StringText,'?','&#249;');
+        StringText=strrep(StringText,'?','&#250;');
+        StringText=strrep(StringText,'?','&#251;');
+        StringText=strrep(StringText,'?','&#252;');
+        StringText=strrep(StringText,'?','&#253;');
+        StringText=strrep(StringText,'?','&#254;');
+        StringText=strrep(StringText,'?','&#255;');
     end
     StringText=deblank(StringText);
 end

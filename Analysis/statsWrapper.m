@@ -1,4 +1,4 @@
-function out = statsWrapperMat(X,groups)
+function out = statsWrapper(X,groups)
 %
 % X -> matrix array
 % the data matrix should have the same number of columns (time dimension)

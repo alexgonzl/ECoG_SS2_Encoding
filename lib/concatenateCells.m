@@ -1,7 +1,7 @@
-
-
-function out = CorrByCell(cellMat,cellRTs)
-% utility function
+function out = concatenateCells(cellMat)
+% utility function that translates the cell array from subjects
+% to a cell array by channel. subject channels are vertically
+% concatenated to form a longer cell array
 
 nCells      = numel(cellMat);
 dims        = max(cellfun('ndims',cellMat));
@@ -17,8 +17,7 @@ out = cell(N,1);
 cnt = 1;
 for ii = 1:nCells    
    for jj = 1:cellSizes(1,ii)
-       X= squeeze(cellMat{ii}(jj,:,:));
-       out{cnt} = corr(X,cellRTs{ii},'rows','complete');
+       out{cnt} = squeeze(cellMat{ii}(jj,:,:));
        cnt = cnt +1;
    end
 end

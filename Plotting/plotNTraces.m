@@ -23,7 +23,8 @@ nOptInputs  = numel(varargin);
 if nOptInputs >0
     assert(mod(nOptInputs,2)==0,'unpaired input')
     assert(all(ismember(varargin(1:2:end)',...
-        {'cols','smoother','smootherSpan','centerType','yLimits','errorBars','yCenter'})),...
+        {'cols','smoother','smootherSpan','centerType',...
+        'yLimits','errorBars','yCenter','yRefLimits'})),...
          'invalid input')
     
     for oo=1:2:nOptInputs
@@ -58,9 +59,11 @@ for i = 1:N
     m(i,:)  = eval([centerType '(x)']);
     n(i)    = size(x,1);
     eb(i,:) = eval([errorBars '(x)']);
-    if exist('smoother','var')
-        m(i,:)  = smooth(m(i,:),smootherSpan,smoother);
-        eb(i,:) = smooth(eb(i,:),smootherSpan,smoother);
+    if exist('smoother','var') 
+        if ~strcmp(smoother,'none')
+            m(i,:)  = smooth(m(i,:),smootherSpan,smoother);
+            eb(i,:) = smooth(eb(i,:),smootherSpan,smoother);
+        end
     end
 end
 
@@ -73,7 +76,15 @@ else
     minY = min(min(m-eb));
     minY = minY - 0.25*abs(minY);
     maxY = max(max(m+eb));
-    maxY = maxY + 0.2*abs(maxY);    
+    maxY = maxY + 0.25*abs(maxY);    
+end
+
+if exist('yRefLimits','var')
+    if isempty(yRefLimits)
+        yRefLimits = [minY*0.3 maxY*0.3];
+    end
+else
+    yRefLimits = [minY*0.3 maxY*0.3];
 end
 
 if ~exist('yCenter','var')
@@ -88,8 +99,8 @@ for c = 1:N
 end
 
 xlim([t(1)-0.01 t(end)+0.01])
-plot(xlim,[yCenter yCenter],'--k','linewidth',2)
-plot([0 0],ylim,'--k','linewidth',2)
+plot(xlim,[yCenter yCenter],'--k','linewidth',2,'color',0.3*ones(3,1))
+plot([0 0],yRefLimits,'--k','linewidth',2,'color',0.3*ones(3,1))
 
 for c = 1:N
     h.(['h' num2str(c)]) = shadedErrorBar(t,m(c,:),eb(c,:),{'color', colors(c,:),'linewidth',3},1);
@@ -97,7 +108,7 @@ for c = 1:N
 end
 set(gca,'linewidth',2)
 set(gca,'fontweight','bold')
-set(gca,'fontsize',15);
+set(gca,'fontsize',16);
 minY = minY + 0.05*abs(minY);
 ylim([minY maxY])
 

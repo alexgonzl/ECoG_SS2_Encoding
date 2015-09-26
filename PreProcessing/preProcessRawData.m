@@ -47,12 +47,21 @@ if data.standarized, zscore_str = 'zscored';else zscore_str='';end
 
 %% Parameters
 
-data.SRorig     = 3051.76;
+if strcmp(subj,'30')
+    data.SRorig     = 1525.88;
+    data.upSamp   =  2; % upsampling by 2 to match other subjects...
+else
+    data.SRorig     = 3051.76;
+    data.upSamp     = 1;
+end
+data.comp       = 7;  
 data.lowpass    = 180;  lp = data.lowpass; % low pass filter
 data.hipass     = 1;    hp = data.hipass;% high pass filter
 data.notch      = [60 120]; notches = data.notch; % notch; notches =
-data.comp       = 7; comp=data.comp;% compression factor
-data.SR         = data.SRorig/data.comp; SR = data.SR;
+data.SR         = data.SRorig/data.comp*data.upSamp; SR = data.SR;
+
+upSamp = data.upSamp;
+comp=data.comp;% compression factor
 
 %% Decompose channels and save
 rawDataPath             = data.paths.RawDataPath;
@@ -73,7 +82,7 @@ for b = 1: data.nBlocks
     rawdatafile = [rawDataPath data.blocklist{b} '/iEEG' data.blocklist{b} '_01.mat'];
     
     x           = load(rawdatafile);
-    nBlockSamps = ceil(length(x.wave)/data.comp); clear x;
+    nBlockSamps = ceil(length(x.wave)/data.comp*data.upSamp); clear x;
     
     data.blockOffset(b+1) = data.blockOffset(b)+nBlockSamps;
     data.trialOnsets = [data.trialOnsets ; ceil(stamps*data.SR)+data.blockOffset(b)];
@@ -93,7 +102,11 @@ for b = 1: data.nBlocks
             x = -double(x.wave);
             % detrend, downsample, bandpass & notch
             x = detrend(x,'linear');
+            if upSamp>1
+                x = upsample(x,upSamp);
+            end            
             x = decimate(x,comp);
+            
             x = channelFilt(x,SR,lp,hp,[]);
             for n = notches
                 x = channelFilt(x,SR,[],[],n);

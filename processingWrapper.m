@@ -6,7 +6,9 @@
 addpath PreProcessing/
 addpath lib/
 addpath behavior/
-for s ={'24'}%s ={'16b','18','24','28'}
+
+%s ={'16b','18','24','28'}
+for s = {'30'}%{'17b','29'}
     preProcessRawData(s{1},'SS2e')
 end
 
@@ -16,9 +18,9 @@ addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
 %subjects = {'16b','18','24','28'};
-%subjects = {'SRb','MD','LK','NC'};
-subjects = {'LK'};
-%subjects = {'17b','19','29'};
+subjects = {'RR'};
+%subjects = {'LK'};
+%subjects = {'RHb','JT2'};
 
 reference = 'nonLPCch'; nRefChans = 0; % using this nonLPC for now % 5/7/2014
 %reference = 'origCAR'; nRefChans = 0;
@@ -43,9 +45,11 @@ addpath Analysis/
 addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
-subjects = {'SRb','MD','LK','NC'};
+subjects = {'RR'};
+%subjects = {'SRb','MD','LK','NC'};
 %subjects = {'16b','18','24','28'};
-reference = 'nonLPCCh';
+reference = 'origCAR';
+%reference = 'nonLPCCh';
 
 %subjects = {'17b','19','29'};
 %reference = 'nonLPCleasL1TvalCh'; nRefChans = 10;
@@ -140,15 +144,16 @@ addpath Analysis/
 addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
-%subjects = {'SRb','MD','LK','NC'};
-subjects = {'LK'};
+subjects = {'RR'}%{'SRb','MD','LK','NC'};
+%subjects = {'RHb','JT2'};
+%subjects = {'LK'};
 %subjects = {'16b','18','24','28'};
 %dateStr = '17-Jun-2013';
 %subjects = {'17b','19','29'};
 
 for s = subjects
     dataIn = load([dataPath s{1} '/preProcessed/data' reference  '.mat']);
-    for band = {'hgam'}%{'delta','theta','alpha','beta','lgam','hgam','bb'};
+    for band = {'theta','alpha','hgam'}%{'delta','theta','alpha','beta','lgam','hgam','bb'};
         data = dataDecompose(dataIn.data,band{1});
         if ~exist([dataPath s{1}  '/Spectral_Data/continous/'],'dir');
             mkdir([dataPath s{1}  '/Spectral_Data/continous/']);
@@ -164,29 +169,24 @@ addpath Analysis/
 addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
-<<<<<<< HEAD
-subjects = {'SRb','MD','LK','NC'};
+
+subjects = {'RR'}%{'SRb','MD','LK','NC','RHb','JT2'};
 %subjects = {'LK'};
-=======
-%subjects = {'SRb','MD','LK','NC'};
-subjects = {'LK'};
->>>>>>> 7749784abab379f5dd449da6970cb3fa6283bcf1
+%subjects = {'RHb','JT2'};
+
 %subjects = {'16b','18','24','28'};
 %subjects = {'17b','19','29'};
 reference = 'nonLPCCh';
 %reference = 'nonLPCleasL1TvalCh'; nRefChans = 10;
 %reference = 'allChCAR'; nRefChans = 0;
 
-<<<<<<< HEAD
 lockType     = 'RT'; %{'stim','RT'}
-=======
-lockType     = 'stim'; %{'stim','RT'}
->>>>>>> 7749784abab379f5dd449da6970cb3fa6283bcf1
+
 analysisType = 'logPower';%{'Amp','Power', 'logPower'};
 baselineType = 'sub';%{'rel','sub'}
 
 for s = subjects
-    for band = {'hgam'}%{'delta','theta','alpha','beta','lgam','hgam','bb'};
+    for band = {'hgam'}%{'theta','alpha','hgam'};%{'delta','theta','alpha','beta','lgam','hgam','bb'};
         dataIn = load([dataPath s{1} '/Spectral_Data/continous/BandPass' band{1} reference '.mat']);
         dataIn.data.lockType        = lockType;
         dataIn.data.analysisType    = analysisType;
@@ -200,7 +200,6 @@ for s = subjects
                 save([dataPath s{1}  '/Spectral_Data/' band{1} '/ERSPs' band{1} 'stimLock' baselineType analysisType ...
                     reference '.mat'],'data')
                 
-<<<<<<< HEAD
             case 'RT'
                 % load the stim first
                 stimdata = load( [dataPath s{1}  '/Spectral_Data/' band{1} '/ERSPs' band{1} 'stimLock' baselineType analysisType ...
@@ -212,16 +211,7 @@ for s = subjects
                 end;
                 save([dataPath s{1}  '/Spectral_Data/' band{1} '/ERSPs' band{1} 'RTLock' baselineType analysisType ...
                     reference '.mat'],'data')
-=======
-            case 'RT' % to do...  5/7/2014
-                %                 % load stim locked data
-                %                 dataIn2 = load([dataPath 'Spectral_Data/subj' s{1} '/ERSPs' band{1} 'stimLock' baselineType analysisType ...
-                %                     reference num2str(nRefChans) '.mat']);
-                %                 dataIn.data.baseLineMeans = dataIn2.data.baseLineMeans; dataIn2=[];
-                %                 data = calcERSP(dataIn.data);
-                %                 save([dataPath 'Spectral_Data/subj' s{1} '/ERSPs' band{1} 'RTLock' baselineType analysisType ...
-                %                     reference num2str(nRefChans) '.mat'],'data')
->>>>>>> 7749784abab379f5dd449da6970cb3fa6283bcf1
+
         end
     end
 end
@@ -257,19 +247,16 @@ addpath Analysis/
 addpath lib/
 
 %bands = {'erp','hgam','delta','theta','alpha','beta','lgam'};
-bands = {'hgam'};
+bands = {'hgam'}%{'theta','alpha'};
 
 opts                = [];
 opts.hems           = 'all';
-<<<<<<< HEAD
 opts.lockType       = 'RT';
-=======
-opts.lockType       = 'stim';
->>>>>>> 7749784abab379f5dd449da6970cb3fa6283bcf1
+
 opts.reference      = 'nonLPCCh';
 %opts.subjects       = {'16b','18','24','28','17b','19', '29'};
-opts.subjects       = {'SRb','MD','LK','NC'};
-opts.hemId          = {'l'  ,'l' ,'l' ,'l' };
+opts.subjects       = {'SRb','MD','LK','NC','RR','RHb','JT2'};
+opts.hemId          = {'l'  ,'l' ,'l' ,'l','l','r','r'};
 opts.dataPath       = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
 for ba = 1:numel(bands)
@@ -278,15 +265,10 @@ for ba = 1:numel(bands)
     fileName    = [opts.hems data.prefix 'Group' data.extension];
     
     if strcmp(opts.band,'erp')
-<<<<<<< HEAD
+
         savePath = [opts.dataPath 'group/ERP_Data/'];
     else
         savePath = [opts.dataPath 'group/Spectral_Data/'];
-=======
-        savePath = [dataPath 'group/ERP_Data/'];
-    else
-        savePath = [dataPath 'group/Spectral_Data/'];
->>>>>>> 7749784abab379f5dd449da6970cb3fa6283bcf1
     end
     
     if ~exist(savePath,'dir'); mkdir(savePath); end;
