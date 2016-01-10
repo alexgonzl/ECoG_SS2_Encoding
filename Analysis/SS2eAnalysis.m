@@ -24,13 +24,14 @@ addpath Plotting/
 addpath lib/
 
 dirPath         = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
-fileName        = ['allERSPs' band 'Group' lock 'LocksublogPowernonLPCCh'];
+%fileName        = ['allERSPs' band 'Group' lock 'sublogPowernonLPCCh'];
+fileName        = ['allERSPs' band 'Group' lock 'sublogPowernLPClowEvokedVar'];
 
 dataPath = [dirPath 'group/Spectral_Data/'];
 load([dataPath fileName '.mat'])
 
 if ~strcmp(hem,'all')
-    subjs = find(strcmp(data.options.hemId,hem));
+    subjs = find(strcmp(data.subjHemsIds,hem));
 else
     subjs = 1:numel(data.options.subjects);
 end
@@ -63,6 +64,7 @@ info.Bins       = data.Bins;
 info.alpha      = 0.05/15;
 info.toi        = [0 1.5];
 info.yLimits    = [-1 1.6];
+%info.yLimits    = [-4 2];
 if strcmp(lock,'stim')
     info.xtick      = [0 0.4 0.8 1.2];
     info.xticklabel = {'stim','0.4','0.8','1.2'};
@@ -128,7 +130,7 @@ switch AnalysisNum
         info.rownames 	= cellstr(strcat('BinCenter',num2str(mean(data.Bins,2),3)));
         
         info.savePath 	= '/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/Results/Logs/';
-        printStats(stats,info)
+        %printStats(stats,info)
         
         info.savePath 	= '/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/Results/Plots/';
         info.yLimits    = [-0.2 0.2];
@@ -221,10 +223,11 @@ switch AnalysisNum
         info.groupNames = {'IPS','SPL','AG'};
         %info.legend    = info.groupNames;
         
-        cond1   = cellfun(@and,data.conds(subjs,1),data.conds(subjs,3),'uniformoutput',0); % correct abstract
-        cond2   = cellfun(@and,data.conds(subjs,2),data.conds(subjs,4),'uniformoutput',0); % correct concrete
-        cond    = cellfun(@or,cond1,cond2,'uniformoutput',0);   % corrects
-        cond    = cellfun(@and,cond,data.conds(subjs,5),'uniformoutput',0);           % remembered
+%         cond1   = cellfun(@and,data.conds(subjs,1),data.conds(subjs,3),'uniformoutput',0); % correct abstract
+%         cond2   = cellfun(@and,data.conds(subjs,2),data.conds(subjs,4),'uniformoutput',0); % correct concrete
+%         cond    = cellfun(@or,cond1,cond2,'uniformoutput',0);   % corrects
+%         cond    = cellfun(@and,cond,data.conds(subjs,5),'uniformoutput',0);           % remembered
+        cond    = data.conds(subjs,10);
         
         X       = subSelectByCell(data.BinERP(subjs),cond);
         RTs     = cell(nSubjs,1);
@@ -239,7 +242,7 @@ switch AnalysisNum
         info.rownames   = cellstr(strcat('BinCenter',num2str(mean(data.Bins,2),3)));
         
         info.savePath   = '/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/Results/Logs/';
-        printStats(stats,info)
+%        printStats(stats,info)
         
         info.savePath   = '/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/Results/Plots/';
         info.yLimits    = [-0.2 0.2];
@@ -438,7 +441,7 @@ switch AnalysisNum
             info.fileName       = sprintf('%s%s',info.Analysis,info.groupNames{iROI},'hardSplit');
             info.colID          = iROI;
             info.shade_toi      = 1;
-            info.toi            = [0.3 0.7]; % time of interest in seconds for bar plot
+            info.toi            = [0.5 0.7]; % time of interest in seconds for bar plot
             parametricTimeCoursePlot(Z,t,info)
             
             % bar plots for time of interest
@@ -595,8 +598,8 @@ switch AnalysisNum
         stats = statsWrapperMat(Y,groups);
         info.rownames   = cellstr(strcat('BinCenter',num2str(mean(data.Bins,2),3)));
         
-        info.savePath   = '/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/Results/Logs/';
-        printStats(stats,info)
+        %info.savePath   = '/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/Results/Logs/';
+        %printStats(stats,info)
         
         info.savePath   = '/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/Results/Plots/';
         info.yLimits    = [-0.2 0.2];
@@ -636,16 +639,17 @@ switch AnalysisNum
         info.cond2 	= cellfun(@and,data.conds(subjs,2),data.conds(subjs,4),'uniformoutput',0); % correct concrete
         info.cond2 	= cellfun(@and,info.cond2,data.conds(subjs,5),'uniformoutput',0); % correct remembered
         info.cond3  = cellfun(@or, info.cond1,info.cond2,'uniformoutput',0); %
+        cond        = data.conds(subjs,10);
         %info.legend 	= {'Correct Abs','Correct Conc'};
         
         
-        X       = subSelectByCell(data.BinERP(subjs),info.cond3);
+        X       = subSelectByCell(data.BinERP(subjs),cond);
         X       = concatenateCells(X);
         stats = statsWrapper(X,info.groups);
         %info.savePath   = '/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/Results/Logs/';
         %printStats(stats,info);
          
-        X       = subSelectByCell(data.ERP(subjs),info.cond3);
+        X       = subSelectByCell(data.ERP(subjs),cond);
         X       = concatenateCells(X);        
         
         t = data.trialTime;

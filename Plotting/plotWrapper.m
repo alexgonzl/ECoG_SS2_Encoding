@@ -61,7 +61,9 @@ if isfield(info,'PVals') && isfield(info,'Bins') && isfield(info,'alpha')
 end
 
 if isfield(info,'yAxisRightLoc')
-	set(gca,'YAxisLocation','right')
+    if info.yAxisRightLoc
+        set(gca,'YAxisLocation','right')
+    end
 end
 
 if isfield(info,'xtick') && isfield(info,'xticklabel')

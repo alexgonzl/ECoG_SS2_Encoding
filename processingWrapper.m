@@ -7,9 +7,9 @@ addpath PreProcessing/
 addpath lib/
 addpath behavior/
 
-%s ={'16b','18','24','28'}
-for s = {'30'}%{'17b','29'}
-    preProcessRawData(s{1},'SS2e')
+subjects = {'16b','17b','18','24','28','29','30'};
+for s = subjects;
+    preProcessRawData(s{1})
 end
 
 %% re-reference
@@ -17,22 +17,19 @@ addpath PreProcessing/
 addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
-%subjects = {'16b','18','24','28'};
-subjects = {'RR'};
-%subjects = {'LK'};
-%subjects = {'RHb','JT2'};
-
-reference = 'nonLPCch'; nRefChans = 0; % using this nonLPC for now % 5/7/2014
+subjects = {'16b','17b','18','24','28','29','30'};
+reference = 'nonLPCCh'; nRefChans = 10; % using this nonLPC for now % 5/7/2014
 %reference = 'origCAR'; nRefChans = 0;
 %reference = 'nonLPCleasL1TvalCh'; nRefChans = 10;
+%reference = 'nLPClowEvokedVar'; nRefChans = 25;
 
 for s = subjects
     fprintf( '\nRe-Referencing Channels for Subject %s \n',s{1});
     dataIn = load([dataPath '/' s{1} '/preProcessed/data.mat']);
-    if strcmp(reference,'nonLPCleasL1TvalCh')
-        dataIn.data.refInfoFile = [dataPath 'ERP_Data/' s{1} '/ERPsstimLocksubAmporigCAR0' dateStr '.mat'];
+    if strcmp(reference,'nLPClowEvokedVar')
+        dataIn.data.refInfoFile = [dataPath s{1} '/ERP_Data/ERPsstimLocksubAmporigCAR.mat'];
         data2=load(dataIn.data.refInfoFile);
-        dataIn.data.RefChanTotalTstat =data2.data.chanTotalTstat; clear data2;
+        dataIn.data.evokedVar =data2.data.evokedVar; clear data2;
     end
     data = reReferenceData(dataIn.data,reference,nRefChans);
     save([dataPath '/' s{1} '/preProcessed/data' reference '.mat'],'data')
@@ -45,39 +42,37 @@ addpath Analysis/
 addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
-subjects = {'RR'};
-%subjects = {'SRb','MD','LK','NC'};
-%subjects = {'16b','18','24','28'};
-reference = 'origCAR';
+subjects = {'16b','17b','18','24','28','29','30'};
+%reference = 'origCAR';
+reference = 'nLPClowEvokedVar';
 %reference = 'nonLPCCh';
 
-%subjects = {'17b','19','29'};
-%reference = 'nonLPCleasL1TvalCh'; nRefChans = 10;
-%reference = 'allChCAR'; nRefChans = 0;
+lockType = {'preStim','stim'};
 
-lockType = 'stim'; %{'stim','RT'}
 
 analysisType = 'Amp';%{'Amp','Power', 'logPower'};
 baselineType = 'sub';%{'rel','sub'}
 
 for s = subjects
-    dataIn = load([dataPath s{1} '/preProcessed/data' reference  '.mat']);
-    dataIn.data.lockType        = lockType;
+    dataIn = load([dataPath s{1} '/preProcessed/data' reference  '.mat']);    
     dataIn.data.analysisType    = analysisType;
     dataIn.data.baselineType    = baselineType;
-    switch lockType
-        case 'stim'
-            data = calcERP(dataIn.data);
-            if ~exist([dataPath s{1}  '/ERP_Data/'],'dir'); mkdir([dataPath s{1}  '/ERP_Data/']);end;
-            save([dataPath s{1}  '/ERP_Data/ERPsstimLock' baselineType analysisType reference '.mat'],'data')
-        case 'RT' % to do...
-            % load stim locked data
-            %             dataIn2 = load([dataPath 'ERP_Data/subj' s{1} '/ERPsstimLock' baselineType analysisType ...
-            %                 reference num2str(nRefChans) '.mat']);
-            %             dataIn.data.baseLineMeans = dataIn2.data.baseLineMeans; dataIn2=[];
-            %             data = calcERP(dataIn.data);
-            %             save([dataPath 'ERP_Data/subj' s{1} '/ERPsRTLock' baselineType analysisType ...
-            %                 reference num2str(nRefChans) '.mat'],'data')
+    for lt = lockType
+        dataIn.data.lockType        = lt{1};
+        switch lt{1}
+            case {'stim','preStim'}
+                data = calcERP(dataIn.data);
+                if ~exist([dataPath s{1}  '/ERP_Data/'],'dir'); mkdir([dataPath s{1}  '/ERP_Data/']);end;
+                save([dataPath s{1}  '/ERP_Data/ERPs' lt{1} baselineType analysisType reference '.mat'],'data')
+            case 'RT' % to do...
+                % load stim locked data
+                %             dataIn2 = load([dataPath 'ERP_Data/subj' s{1} '/ERPsstimLock' baselineType analysisType ...
+                %                 reference num2str(nRefChans) '.mat']);
+                %             dataIn.data.baseLineMeans = dataIn2.data.baseLineMeans; dataIn2=[];
+                %             data = calcERP(dataIn.data);
+                %             save([dataPath 'ERP_Data/subj' s{1} '/ERPsRTLock' baselineType analysisType ...
+                %                 reference num2str(nRefChans) '.mat'],'data')
+        end
     end
     fprintf('calc ERP done for subj %s\n', s{1})
 end
@@ -144,16 +139,13 @@ addpath Analysis/
 addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
-subjects = {'RR'}%{'SRb','MD','LK','NC'};
-%subjects = {'RHb','JT2'};
-%subjects = {'LK'};
-%subjects = {'16b','18','24','28'};
-%dateStr = '17-Jun-2013';
-%subjects = {'17b','19','29'};
+subjects = {'16b','17b','18','24','28','29','30'};
+%reference = 'nLPClowEvokedVar';
+reference = 'nonLPCCh';
 
 for s = subjects
     dataIn = load([dataPath s{1} '/preProcessed/data' reference  '.mat']);
-    for band = {'theta','alpha','hgam'}%{'delta','theta','alpha','beta','lgam','hgam','bb'};
+    for band = {'delta','theta','alpha','beta','lgam','hgam'};
         data = dataDecompose(dataIn.data,band{1});
         if ~exist([dataPath s{1}  '/Spectral_Data/continous/'],'dir');
             mkdir([dataPath s{1}  '/Spectral_Data/continous/']);
@@ -169,49 +161,35 @@ addpath Analysis/
 addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
+subjects = {'16b','17b','18','24','28','29','30'};
+%reference = 'nonLPCch';
+reference = 'nLPClowEvokedVar';
 
-subjects = {'RR'}%{'SRb','MD','LK','NC','RHb','JT2'};
-%subjects = {'LK'};
-%subjects = {'RHb','JT2'};
-
-%subjects = {'16b','18','24','28'};
-%subjects = {'17b','19','29'};
-reference = 'nonLPCCh';
-%reference = 'nonLPCleasL1TvalCh'; nRefChans = 10;
-%reference = 'allChCAR'; nRefChans = 0;
-
-lockType     = 'RT'; %{'stim','RT'}
+lockType     = {'preStim'}%{'preStim','stim','RT'};
 
 analysisType = 'logPower';%{'Amp','Power', 'logPower'};
 baselineType = 'sub';%{'rel','sub'}
 
 for s = subjects
-    for band = {'hgam'}%{'theta','alpha','hgam'};%{'delta','theta','alpha','beta','lgam','hgam','bb'};
-        dataIn = load([dataPath s{1} '/Spectral_Data/continous/BandPass' band{1} reference '.mat']);
-        dataIn.data.lockType        = lockType;
-        dataIn.data.analysisType    = analysisType;
-        dataIn.data.baselineType    = baselineType;
-        switch lockType
-            case 'stim'
-                data = calcERSP(dataIn.data);
-                if ~exist([dataPath s{1}  '/Spectral_Data/' band{1} '/'],'dir');
-                    mkdir([dataPath s{1}  '/Spectral_Data/' band{1} '/']);
-                end;
-                save([dataPath s{1}  '/Spectral_Data/' band{1} '/ERSPs' band{1} 'stimLock' baselineType analysisType ...
-                    reference '.mat'],'data')
-                
-            case 'RT'
+    for band = {'delta','theta','alpha','beta','lgam','hgam'};
+        for lt = lockType
+            dataIn = load([dataPath s{1} '/Spectral_Data/continous/BandPass' band{1} reference '.mat']);
+            dataIn.data.lockType        = lt{1};
+            dataIn.data.analysisType    = analysisType;
+            dataIn.data.baselineType    = baselineType;
+            
+            if strcmp(lt{1},'RT')
                 % load the stim first
-                stimdata = load( [dataPath s{1}  '/Spectral_Data/' band{1} '/ERSPs' band{1} 'stimLock' baselineType analysisType ...
+                stimdata = load( [dataPath s{1}  '/Spectral_Data/' band{1} '/ERSPs' band{1} 'stim' baselineType analysisType ...
                     reference '.mat'],'data');
                 dataIn.data.baseLineMeans = stimdata.data.baseLineMeans;
-                data = calcERSP(dataIn.data);
-                if ~exist([dataPath s{1}  '/Spectral_Data/' band{1} '/'],'dir');
-                    mkdir([dataPath s{1}  '/Spectral_Data/' band{1} '/']);
-                end;
-                save([dataPath s{1}  '/Spectral_Data/' band{1} '/ERSPs' band{1} 'RTLock' baselineType analysisType ...
-                    reference '.mat'],'data')
-
+            end
+            data = calcERSP(dataIn.data);
+            if ~exist([dataPath s{1}  '/Spectral_Data/' band{1} '/'],'dir');
+                mkdir([dataPath s{1}  '/Spectral_Data/' band{1} '/']);
+            end;
+            save([dataPath s{1}  '/Spectral_Data/' band{1} '/ERSPs' band{1} lt{1} baselineType analysisType ...
+                reference '.mat'],'data')
         end
     end
 end
@@ -246,37 +224,141 @@ end
 addpath Analysis/
 addpath lib/
 
-%bands = {'erp','hgam','delta','theta','alpha','beta','lgam'};
-bands = {'hgam'}%{'theta','alpha'};
+bands        = {'erp'};%{'delta','theta','alpha','beta','lgam','hgam'};
+lockType     = {'preStim','stim'}%{'preStim','stim','RT'};
 
 opts                = [];
 opts.hems           = 'all';
-opts.lockType       = 'RT';
-
-opts.reference      = 'nonLPCCh';
-%opts.subjects       = {'16b','18','24','28','17b','19', '29'};
-opts.subjects       = {'SRb','MD','LK','NC','RR','RHb','JT2'};
-opts.hemId          = {'l'  ,'l' ,'l' ,'l','l','r','r'};
+opts.reference      = 'nLPClowEvokedVar';
+%opts.reference      = 'nonLPCch';
+opts.subjects       = {'16b','17b','18','24','28','29','30'};
 opts.dataPath       = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
-for ba = 1:numel(bands)
-    opts.band   = bands{ba};
-    data        = groupLPCData(opts);
-    fileName    = [opts.hems data.prefix 'Group' data.extension];
-    
-    if strcmp(opts.band,'erp')
-
-        savePath = [opts.dataPath 'group/ERP_Data/'];
-    else
-        savePath = [opts.dataPath 'group/Spectral_Data/'];
+for lt = lockType
+    opts.lockType       = lt{1};
+    for ba = 1:numel(bands)
+        opts.band   = bands{ba};
+        data        = groupLPCData(opts);
+        fileName    = [opts.hems data.prefix 'Group' data.extension];
+        
+        if strcmp(opts.band,'erp')            
+            savePath1 = [opts.dataPath 'group/ERP_Data/'];
+            savePath2 = '~/Google Drive/Research/ECoG_SS2e/data_results/';
+        else
+            savePath1 = [opts.dataPath 'group/Spectral_Data/'];
+            savePath2 = '~/Google Drive/Research/ECoG_SS2e/data_results/';
+        end
+        
+        if ~exist(savePath1,'dir'); mkdir(savePath1); end;
+        
+        save([savePath1 fileName '.mat'],'data')
+        save([savePath2 fileName '.mat'],'data')
+        fprintf('grouping data completed for %s\n',opts.band)
     end
-    
-    if ~exist(savePath,'dir'); mkdir(savePath); end;
-    
-    save([savePath fileName '.mat'],'data')
-    fprintf('grouping data completed for %s\n',opts.band)
 end
 
+%% group across frequency bands
+addpath Analysis/
+addpath lib/
+
+bands        = {'delta','theta','alpha','beta','lgam','hgam'};
+lockType     = {'preStim','preStim','stim','RT'};
+
+opts                = [];
+opts.hems           = 'all';
+opts.reference      = 'nLPClowEvokedVar';
+%opts.reference      = 'nonLPCch';
+opts.subjects       = {'16b','17b','18','24','28','29','30'};
+opts.dataPath       = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
+
+for lt = lockType
+    opts.lockType       = lt{1};
+    for ba = 1:numel(bands)
+        opts.band   = bands{ba};
+        data        = groupLPCData(opts);
+        fileName    = [opts.hems data.prefix 'Group' data.extension];
+        
+        if strcmp(opts.band,'erp')
+            
+            savePath = [opts.dataPath 'group/ERP_Data/'];
+        else
+            savePath = [opts.dataPath 'group/Spectral_Data/'];
+        end
+        
+        if ~exist(savePath,'dir'); mkdir(savePath); end;
+        
+        save([savePath fileName '.mat'],'data')
+        fprintf('grouping data completed for %s\n',opts.band)
+    end
+end
+
+%%  Plot Correlation time-courses per band and ROI
+
+addpath Analysis/
+addpath lib/
+addpath Plotting/
+
+bands        = {'hgam','theta','alpha'};
+lockTypes     = {'preStim','stim','RT'};
+hemispheres  = {'left','right','all'};
+rois            = {'IPS','SPL'};
+cols            = {'r','b'};
+dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
+
+info           = [];
+info.alpha      = 0.001;
+info.savePath  = '~/Google Drive/Research/ECoG_SS2e/Plots/';
+
+for lt = 1:numel(lockTypes)
+    lockType       = lockTypes{lt};
+    if strcmp(lockType,'RT')
+        info.yAxisRightLoc=1;
+    else
+        info.yAxisRightLoc=0;
+    end
+    for ba = 1:numel(bands)
+        band   = bands{ba};
+        fileName    = ['allERSPs' band 'Group' lockType 'sublogPowernLPClowEvokedVar'];
+        load([dataPath fileName '.mat'],'data')
+        b = mean(data.Bins,2);
+        t = data.trialTime;
+        for hm = 1:numel(hemispheres)
+            hem = hemispheres{hm};
+            switch hem
+                case 'left'
+                    ROIch{1} = data.hemChan==1 & data.ROIid==1;
+                    ROIch{2} = data.hemChan==1 & data.ROIid==2;
+                case 'right'
+                    ROIch{1} = data.hemChan==2 & data.ROIid==1;
+                    ROIch{2} = data.hemChan==2 & data.ROIid==2;
+                    
+                case 'all'
+                    ROIch{1} = data.ROIid==1;
+                    ROIch{2} = data.ROIid==2;
+            end
+            for rr = 1:numel(rois)
+                info.cols = cols{rr};
+                % mean activity
+                X = [];
+                X{1} = data.meanChResp(ROIch{rr},:);
+                info.fileName = [hem '_' band '_' lockType '_' rois{rr} '_meanChResp'];
+                plotWrapper(X,t,info)
+                
+                % correlation of activity to semantic desicion
+                X{1} = data.dataToStudyRTsCorr(ROIch{rr},:);
+                [~,info.PVals] = ttest(X{1});
+                info.fileName = [hem '_' band '_' lockType '_' rois{rr} '_CorrToSemanticRT'];
+                plotWrapper(X,b,info)
+                
+                % correlation of activity to retrieval RT
+                X{1} = data.dataToTestRTsCorr(ROIch{rr},:);
+                [~,info.PVals] = ttest(X{1});
+                info.fileName = [hem '_' band '_' lockType '_' rois{rr} '_CorrToRetrievalRT'];
+                plotWrapper(X,b,info)
+            end
+        end
+    end
+end
 %% render channels
 
 close all
@@ -295,29 +377,39 @@ renderCortex(data,opts)
 
 %% calc ITC
 
+addpath PreProcessing/
 addpath Analysis/
 addpath lib/
+dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
-dateStr = '27-May-2013';
-subjects = {'16b','18','24','28'};
-dateStr = '17-Jun-2013';
-subjects = {'17b','19','29'};
-reference = 'nonLPCleasL1TvalCh'; nRefChans = 10;
-lockType = 'RT';
-dataPath = '../Results/';
+subjects = {'16b','17b','18','24','28','29','30'};
+%reference = 'nonLPCch';
+reference = 'nLPClowEvokedVar';
+
+lockType     = {'preStim','stim','RT'};
+
+analysisType = 'logPower';%{'Amp','Power', 'logPower'};
+baselineType = 'sub';%{'rel','sub'}
 
 for s = subjects
-    for band = {'delta','theta','alpha'}%{'delta','theta','alpha','beta','lgam','hgam','bb'};
-        dataIn = load([dataPath 'Spectral_Data/subj' s{1} '/BandPassedSignals/BandPass' ...
-            band{1}  reference num2str(nRefChans) dateStr '.mat']);
-        dataIn.data.lockType = lockType;
-        
-        data = calcITC(dataIn.data);
-        savePath = [dataPath 'ITC_Data/subj' s{1} '/'];
-        if ~exist(savePath,'dir'), mkdir(savePath), end;
-        save([savePath '/ITC' band{1} lockType 'Lock' reference num2str(nRefChans) '.mat'],'data')
+    for band = {'delta','theta','alpha','beta','lgam','hgam'};
+        for lt = lockType
+            dataIn = load([dataPath s{1} '/Spectral_Data/continous/BandPass' band{1} reference '.mat']);
+            dataIn.data.lockType        = lt{1};
+            dataIn.data.analysisType    = analysisType;
+            dataIn.data.baselineType    = baselineType;
+            
+           
+            data = calcITC(dataIn.data);
+            if ~exist([dataPath s{1}  '/ITC_Data/' band{1} '/'],'dir');
+                mkdir([dataPath s{1}  '/ITC_Data/' band{1} '/']);
+            end;
+            save([dataPath s{1}  '/ITC_Data/' band{1} '/ITC' band{1} lt{1} baselineType analysisType ...
+                reference '.mat'],'data')
+        end
     end
 end
+
 
 %% group ITC
 

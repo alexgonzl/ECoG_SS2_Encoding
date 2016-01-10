@@ -12,7 +12,7 @@ function data=calcERP(data)
 %   CalculateBadTrials.m
 
 
-data.lowpass = 20; lp = data.lowpass; SR = data.SR;
+data.lowpass = 30; lp = data.lowpass; SR = data.SR;
 switch  data.lockType
     case 'preStim'
         data.trialDur = [-1 1]; dur = data.trialDur;
@@ -50,7 +50,7 @@ epSamps = floor(epochTime*data.SR);
 evIdx = zeros(nEvents,nEpSamps);
 
 switch  data.lockType
-    case {'stim','preStim'}
+    case 'stim'
         offset = zeros(nEvents,1);
     case 'RT'
         offset = floor(data.behavior.allRTs*data.SR);
@@ -64,7 +64,9 @@ validTrials = find(~isnan(offset))';
 
 % low pass the data
 X = data.signal;data.signal=[];
-X = channelFilt(X,SR,lp,[],[]);
+for ch = 1:data.nChans
+    X(ch,:) = channelFilt(X(ch,:),SR,lp,[],[]);
+end
 
 % epoch the data
 erp = nan(data.nChans,nEvents,nEpSamps);
@@ -89,7 +91,7 @@ end
 
 % Correct for baseline fluectuations before trial onset. In case of RT
 % locked analysis, it uses the baselines from the stim locked (loaded outside)
-if  ~strcmp(data.lockType,'RT')
+if strcmp(data.lockType,'stim')
     baselineIdx = epochTime<=data.baseLine(2) & epochTime>= data.baseLine(1);
         data.baseLineMeans = nanmean(erp(:,:,baselineIdx),3);
 end
@@ -112,6 +114,9 @@ for ch = 1:data.nChans
     data.evokedMean(ch,:) = mean(data.erp(ch,:,evokedSamples),3);
     data.evokedVar(ch,:)  = var(data.erp(ch,:,evokedSamples),0,3);
 end
+
+% get bad trials for LPCchannels
+[~,data.trialVar,data.goodTrials]=CalculateBadTrials(erp(data.chanInfo.LPC,:,:), 2);
 
 end
 

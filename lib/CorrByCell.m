@@ -18,7 +18,7 @@ cnt = 1;
 for ii = 1:nCells    
    for jj = 1:cellSizes(1,ii)
        X= squeeze(cellMat{ii}(jj,:,:));
-       out{cnt} = corr(X,cellRTs{ii},'rows','complete');
+       out{cnt} = corr(X,cellRTs{ii},'rows','complete','type','spearman');
        cnt = cnt +1;
    end
 end

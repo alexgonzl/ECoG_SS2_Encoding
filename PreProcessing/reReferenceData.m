@@ -24,6 +24,10 @@ switch data.reReferencing
         [~,i]=sort(data.chanVar);
         temp = i(ismember(i,data.chanInfo.other));
         CARch = temp(1:nRefChans);
+    case 'nLPClowEvokedVar'
+        [~,i]=sort(median(data.evokedVar,2));
+        temp = i(ismember(i,data.chanInfo.other));
+        CARch = temp(1:nRefChans);
     case 'nonLPCleasL1TvalCh'
         [~,i]=sort(data.RefChanTotalTstat);
         temp = i(ismember(i,data.chanInfo.other))';

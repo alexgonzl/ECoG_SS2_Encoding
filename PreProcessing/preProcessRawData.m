@@ -1,4 +1,4 @@
-function data=preProcessRawData(subj,expt)
+function data=preProcessRawData(subj)
 % function filters the raw data traces and concantenates data blocks for
 % later processing
 %
@@ -33,7 +33,7 @@ data.nBlocks        = numel(data.blocklist);
 data.paths.dataPath         = ['/Volumes/ECoG_SS2/SS2/data/' data.subjName '/' ];
 data.paths.behavDataPath    = [data.paths.dataPath 'BehavData/'];
 data.paths.RawDataPath      = [data.paths.dataPath 'RawData/'];
-data.paths.ResultsPath      = ['/Volumes/ECoG_SS2/SS2/SS2e/Results/' data.subjName '/' ];
+data.paths.ResultsPath      = ['/Volumes/ECoG_SS2/SS2/SS2e/Results/' data.subjNum '/' ];
 data.paths.preProRawPath    = [data.paths.ResultsPath 'preProcessed/'];         
 
 load([data.paths.ResultsPath 'BehavResults/behavResults.mat'])
@@ -57,7 +57,7 @@ end
 data.comp       = 7;  
 data.lowpass    = 180;  lp = data.lowpass; % low pass filter
 data.hipass     = 1;    hp = data.hipass;% high pass filter
-data.notch      = [60 120]; notches = data.notch; % notch; notches =
+data.notch      = [60 120 180]; notches = data.notch; % notch; notches =
 data.SR         = data.SRorig/data.comp*data.upSamp; SR = data.SR;
 
 upSamp = data.upSamp;

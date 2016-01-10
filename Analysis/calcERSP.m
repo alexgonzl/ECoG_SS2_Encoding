@@ -3,6 +3,9 @@ function data=calcERSP(data)
 % calculates simple univariate stats
 
 switch  data.lockType
+    case 'preStim'
+        data.trialDur = [-1 1]; dur = data.trialDur;
+        data.baseLine = [-1 1];
     case 'stim'
         data.trialDur = [-0.2 1.5]; dur = data.trialDur;
         data.baseLine = [-0.2 0];
@@ -36,7 +39,7 @@ epSamps = floor(epochTime*data.SR);
 evIdx = zeros(nEvents,nEpSamps);
 
 switch  data.lockType
-    case 'stim'
+    case {'stim','preStim'}
         offset = zeros(nEvents,1);
     case 'RT'
         offset = floor(data.behavior.studyRTs*data.SR);
@@ -68,12 +71,13 @@ switch data.analysisType
         erp = 20*log10(abs(erp));
 end
 
-% Correct for baseline fluectuations before trial onset. In case of RT
+% Correct for baseline fluctuations before trial onset. In case of RT
 % locked analysis, it uses the baselines from the stim locked (loaded outside)
-if strcmp(data.lockType,'stim')
+if ~strcmp(data.lockType,'RT')
     baselineIdx = epochTime<=data.baseLine(2) & epochTime>= data.baseLine(1);
     data.baseLineMeans = nanmean(erp(:,:,baselineIdx),3);
 end
+
 
 switch data.baselineType
     case 'sub'
@@ -81,6 +85,7 @@ switch data.baselineType
     case 'rel'
         erp = bsxfun(@rdivide,erp,data.baseLineMeans);
 end
+
 
 % Take relevant samples of trial
 erp = erp(:,:,trialSamps); data.erp = erp;

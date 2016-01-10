@@ -1,4 +1,3 @@
-
 % Analysis of behavioral data for SS2 script
 % also stores markers for pre-proecessing
 % Apr 2014
@@ -14,12 +13,11 @@ S.expt  = 'SS2e';
 S.subjName   = 'RR';
 S = SS2e_subjInfo(S,S.subjName);
 
-%S.dataPath      = ['/biac4/wagner/biac3/wagner7/ecog/subj' S.subjNum '/ecog/SS2/' ];
 S.dataPath      = ['/Volumes/ECoG_SS2/SS2/data/' S.subjName '/' ];
 S.behavDataPath = [S.dataPath 'BehavData/'];
 S.RawDataPath   = [S.dataPath 'RawData/'];
 
-S.behavResPath = ['/Volumes/ECoG_SS2/SS2/SS2e/Results/' S.subjName '/BehavResults/' ];
+S.behavResPath = ['/Volumes/ECoG_SS2/SS2/SS2e/Results/' S.subjNum '/BehavResults/' ];
 
 StudyConds = {'Abs','Conc','CorrectAbs','InCorrectAbs', 'CorrectConc','InCorrectConc','noAnswer'};
 for i=1:numel(StudyConds)
