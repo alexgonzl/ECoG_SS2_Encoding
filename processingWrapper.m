@@ -220,12 +220,11 @@ for s = subjects
 end
 
 %% group data
-
 addpath Analysis/
 addpath lib/
 
-bands        = {'erp'};%{'delta','theta','alpha','beta','lgam','hgam'};
-lockType     = {'preStim','stim'}%{'preStim','stim','RT'};
+bands        = {'delta','theta','alpha','beta','lgam','hgam'};
+lockType     = {'preStim','stim','RT'};
 
 opts                = [];
 opts.hems           = 'all';
@@ -242,54 +241,43 @@ for lt = lockType
         fileName    = [opts.hems data.prefix 'Group' data.extension];
         
         if strcmp(opts.band,'erp')            
-            savePath1 = [opts.dataPath 'group/ERP_Data/'];
-            savePath2 = '~/Google Drive/Research/ECoG_SS2e/data_results/';
-        else
-            savePath1 = [opts.dataPath 'group/Spectral_Data/'];
-            savePath2 = '~/Google Drive/Research/ECoG_SS2e/data_results/';
-        end
-        
-        if ~exist(savePath1,'dir'); mkdir(savePath1); end;
-        
-        save([savePath1 fileName '.mat'],'data')
-        save([savePath2 fileName '.mat'],'data')
-        fprintf('grouping data completed for %s\n',opts.band)
-    end
-end
-
-%% group across frequency bands
-addpath Analysis/
-addpath lib/
-
-bands        = {'delta','theta','alpha','beta','lgam','hgam'};
-lockType     = {'preStim','preStim','stim','RT'};
-
-opts                = [];
-opts.hems           = 'all';
-opts.reference      = 'nLPClowEvokedVar';
-%opts.reference      = 'nonLPCch';
-opts.subjects       = {'16b','17b','18','24','28','29','30'};
-opts.dataPath       = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
-
-for lt = lockType
-    opts.lockType       = lt{1};
-    for ba = 1:numel(bands)
-        opts.band   = bands{ba};
-        data        = groupLPCData(opts);
-        fileName    = [opts.hems data.prefix 'Group' data.extension];
-        
-        if strcmp(opts.band,'erp')
-            
             savePath = [opts.dataPath 'group/ERP_Data/'];
+            savePath2 = '~/Google Drive/Research/ECoG_SS2e/data_results/';
         else
             savePath = [opts.dataPath 'group/Spectral_Data/'];
+            savePath2 = '~/Google Drive/Research/ECoG_SS2e/data_results/';
         end
         
         if ~exist(savePath,'dir'); mkdir(savePath); end;
         
         save([savePath fileName '.mat'],'data')
+        save([savePath2 fileName '.mat'],'data')
         fprintf('grouping data completed for %s\n',opts.band)
     end
+end
+
+
+%% group across frequency bands
+
+addpath Analysis/
+addpath lib/
+
+bands        = {'delta','theta','alpha','beta','lgam','hgam'};
+lockType     = {'preStim'}%,'stim'};%{'preStim','stim','RT'};
+
+opts                = [];
+opts.hems           = 'all';
+opts.bands          = bands;
+opts.reference      = 'nLPClowEvokedVar';
+%opts.reference      = 'nonLPCch';
+opts.dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
+
+for lt = lockType
+    opts.lockType       = lt{1};
+    data        = groupLPCDataMultiBand(opts);        
+    fileName   = [opts.hems 'MBAnalysis' data.extension];
+    save([opts.dataPath fileName '.mat'],'data')
+    fprintf('grouping data completed for %s\n',lt{1})    
 end
 
 %%  Plot Correlation time-courses per band and ROI
@@ -359,21 +347,28 @@ for lt = 1:numel(lockTypes)
         end
     end
 end
-%% render channels
+%% obtain channel locations & plot locs
 
-close all
-opts                = [];
-opts.mainPath       = '../Results/Plots/Renderings/channels/' ;
-opts.level          = 'subj'; %{'group','subj'}
-opts.cortexType     = 'MNI'; %{'Native','MNI'}
-opts.chanNumLabel   = false; %{true,false}
-opts.ROIColor       = true; %{true,false}
-opts.ROIColors      = [[0.9 0.2 0.2];[0.1 0.5 0.8];[0.2 0.6 0.3]];
-opts.subROIColor    = false; %{true,false}
-opts.subROIColors   = [[0.7 0.1 0.1]; [0.95 0.4 0.4]; [0.05 0.3 0.7];[0.2 0.6 0.9]];
-opts.resolution     = 300;
+dataSS2ret=load('/Users/alexandergonzalez/Google Drive/Research/ECoG Manuscript/data/allERSPshgamGroupstimLocksublogPowernonLPCleasL1TvalCh10.mat');
+dataSS2enc=load('/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/data_results/allERSPsdeltaGroupstimsublogPowernLPClowEvokedVar.mat');
+SS2e_subjects       = {'16b','17b','18','24','28','29','30'};
 
-renderCortex(data,opts)
+elecLocs            = [];
+elecLocs.MNILocs    = [];
+elecLocs.MNIcortex  = dataSS2ret.data.MNIcortex;
+elecLocs.lMNIcortex  = dataSS2ret.data.lMNIcortex;
+elecLocs.rMNIcortex  = dataSS2ret.data.rMNIcortex;
+elecLocs.ROIid      = dataSS2enc.data.ROIid;
+elecLocs.SubjChans   =dataSS2enc.data.subjChans;
+elecLocs.hemChans    =dataSS2enc.data.hemChan;
+for ss = 1:numel(SS2e_subjects)
+    SS2retSubjID = find(strcmp(dataSS2ret.data.options.subjects,SS2e_subjects{ss}));
+    elecLocs.MNILocs     = [elecLocs.MNILocs;dataSS2ret.data.MNIlocsSubj{SS2retSubjID}];     
+end
+dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
+fileName       = 'electrodeLocs';
+save([dataPath fileName '.mat'],'elecLocs');
+renderChanCortexSS2e();
 
 %% calc ITC
 
@@ -386,7 +381,7 @@ subjects = {'16b','17b','18','24','28','29','30'};
 %reference = 'nonLPCch';
 reference = 'nLPClowEvokedVar';
 
-lockType     = {'preStim','stim','RT'};
+lockType     = {'preStim','stim'};
 
 analysisType = 'logPower';%{'Amp','Power', 'logPower'};
 baselineType = 'sub';%{'rel','sub'}
@@ -414,26 +409,39 @@ end
 %% group ITC
 
 addpath Analysis/
+addpath lib/
 
-for bands = {'delta','theta','alpha'}
-    
-    opts            = [];
-    opts.hems       = 'all';
-    opts.lockType   = 'RT';
-    opts.reference  = 'nonLPCleasL1TvalCh'; opts.nRefChans = 10;
-    opts.type       = 'ITC';
-    opts.band       = bands{1};
-    
-    opts.subjects   = {'16b','18','24','28','17b','19', '29'};
-    opts.hemId      = {'l'  ,'l' ,'l' ,'l' ,'r'  ,'r' , 'r'};
-    dataPath        = '~/Documents/ECOG/Results/ITC_Data/group/';
-    
-    data = groupLPC_ITCData(opts);
-    
-    fileName = [opts.hems data.prefix 'Group' data.extension];
-    save([dataPath fileName '.mat'],'data')
-    
-    fprintf('grouping data completed for %s\n',opts.band)
+bands        = {'delta','theta','alpha'};
+lockType     = {'preStim','stim'};%{'preStim','stim','RT'};
+
+opts                = [];
+opts.hems           = 'all';
+opts.reference      = 'nLPClowEvokedVar';
+%opts.reference      = 'nonLPCch';
+opts.subjects       = {'16b','17b','18','24','28','29','30'};
+opts.dataPath       = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
+
+for lt = lockType
+    opts.lockType       = lt{1};
+    for ba = 1:numel(bands)
+        opts.band   = bands{ba};
+        data        = groupLPC_ITCData(opts);
+        fileName    = [opts.hems data.prefix 'Group' data.extension];
+        
+        if strcmp(opts.band,'erp')            
+            savePath1 = [opts.dataPath 'group/ERP_Data/'];
+            savePath2 = '~/Google Drive/Research/ECoG_SS2e/data_results/';
+        else
+            savePath1 = [opts.dataPath 'group/ITC_Data/'];
+            savePath2 = '~/Google Drive/Research/ECoG_SS2e/data_results/';
+        end
+        
+        if ~exist(savePath1,'dir'); mkdir(savePath1); end;
+        
+        save([savePath1 fileName '.mat'],'data')
+        save([savePath2 fileName '.mat'],'data')
+        fprintf('grouping data completed for %s\n',opts.band)
+    end
 end
 
 %% calc MI

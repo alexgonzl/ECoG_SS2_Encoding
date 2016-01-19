@@ -12,11 +12,15 @@ function data = calcITC(data)
 data.nPhBins = 200;
 data.nBoot = 20;
 data.nShuf = 100;
+data.RTsplits = 3;
 
 switch  data.lockType
     case 'stim'
-        data.trialDur = [-0.2 1]; dur = data.trialDur;
+        data.trialDur = [-0.2 1.5]; dur = data.trialDur;
         data.baseLine = [-0.2 0];
+    case 'preStim'
+        data.trialDur = [-1 1]; dur = data.trialDur;
+        data.baseLine = [-1 1];
     case 'RT'
         data.trialDur = [-1 0.2]; dur = data.trialDur;
         % baseline period used from the stim locked data
@@ -26,19 +30,9 @@ data.nTrials        = numel(data.trialOnsets);
 epochDur = data.trialDur; % before converting into trials and baseline correcting
 
 % add behavioral data
-behavdatapath = ['~/Documents/ECOG/Results/BehavData/Subj' data.subjnum];
-load([behavdatapath 'behav_perf.mat']);
-data.behavior = behav_perf;
+data.behavior = data.behavorInfo; 
 
-% get bad trials:
-temp = subjExptInfo(data.subjnum,data.expt, data.reReferencing);
-badtrials = temp.badtrials;
-
-goodtrials = true(data.nTrials,1);
-goodtrials(badtrials) = false;
-data.goodTrials = goodtrials;
-
-data.chanInfo = subjChanInfo(data.subjnum);
+data.rois = data.chanInfo;
 
 % time is the total time around the trial that was stored in the data
 % this is might be greater than the trial duration of interest
@@ -51,7 +45,10 @@ trialSamps     = epochTime>=dur(1) & epochTime<=dur(2);
 trialTime      = epochTime(trialSamps); data.trialTime = trialTime;
 
 % get the reation times from behavioral data
-data.allRTs = data.behavior.allRTs;
+data.studyRTs = data.behavior.studyRTs;
+data.studyRTquantiles = quantile(data.studyRTs,(1:data.RTsplits)/data.RTsplits);
+data.testRTs  = data.behavior.testRTs;
+data.testRTquantiles = quantile(data.testRTs,(1:data.RTsplits)/data.RTsplits);
 
 evOnsets = data.trialOnsets;
 nEvents = numel(evOnsets);
@@ -59,10 +56,10 @@ epSamps = floor(epochTime*data.SR);
 evIdx = zeros(nEvents,nEpSamps);
 
 switch  data.lockType
-    case 'stim'
+    case {'stim','preStim'}
         offset = zeros(nEvents,1);
     case 'RT'
-        offset = round(data.allRTs*data.SR);
+        offset = round(data.behavior.studyRTs*data.SR);
 end
 
 for ev = 1:nEvents
@@ -71,58 +68,61 @@ end
 
 validTrials = find(~isnan(offset))';
 
-X = data.phase; data.signal=[]; data.amp=[]; data.phase=[];
+    
+% trials to be analyzed.
+data.correctSemanticResp = (data.behavior.sResp==1 & data.behavior.tResp==1) |...
+    (data.behavior.sResp==2 & data.behavior.tResp==2) ;
+data.correctReps   = data.correctSemanticResp & data.behavior.subRem;
+data.correctRepsIDs = find(data.correctReps);
 
-% Separate trials based on condition
-data.Hits   = data.behavior.hits	 & data.goodTrials; H = data.Hits;
-data.CRs    = data.behavior.cr & data.goodTrials;      CR = data.CRs;
-data.nHits  = sum(data.Hits); data.nCRs = sum(data.CRs);
-data.condTrials = find(H+CR);
-
+% store the phase;
 nChans  = data.nChans; nShuf = data.nShuf; nBoot = data.nBoot;
-nHits   = data.nHits;  nCRs = data.nCRs; condTrials = data.condTrials;
-
-measurementTypes = {'ITC_H','ITC_CR','ITC_D','ITC_Z','ITC_HBM','ITC_HBSD', ...
-    'ITC_CRBM','ITC_CRBSD','ITP_H','ITP_CR','ITP_D','ITP_Z'};
-for mt = measurementTypes
-    eval([mt{1} ' = zeros(nChans,nEpSamps);']);    
-end
-
+X = data.phase; data.signal=[]; data.amp=[]; data.phase=[];
 phase      = nan(nChans,nEvents,nEpSamps);
-
 for ch = 1:nChans
     x = X(ch,:);
     for tr = validTrials
         phase(ch,tr,:) = x(evIdx(tr,:));
     end
 end
-parfor ch = 1:nChans
-    Y = squeeze(phase(ch,:,:));
-    
-    [ITC_H(ch,:) ITP_H(ch,:)]       = itc(Y(H,:));
-    [ITC_CR(ch,:) ITP_CR(ch,:)]     = itc(Y(CR,:));
-    ITC_D(ch,:)                     = ITC_H(ch,:) - ITC_CR(ch,:);
-    ITP_D(ch,:)                     = ITP_H(ch,:) - ITP_CR(ch,:);
-    
-    Y1 = bootstrp(nBoot,@itc,Y(H,:));
-    Y2 = bootstrp(nBoot,@itc,Y(CR,:));
-    
-    ITC_HBM(ch,:)       = mean(Y1);
-    ITC_HBSD(ch,:)      = std(Y1);
-    ITC_CRBM (ch,:)     = mean(Y2);
-    ITC_CRBSD(ch,:)     = std(Y2);    
-    
-    [shITC_D shITP_D]   = permITC_D(Y(condTrials,:),nShuf,nHits);
-    ITC_Z(ch,:)         = (ITC_D(ch,:)-mean(shITC_D))./std(shITC_D);
-    ITP_Z(ch,:)         = (ITP_D(ch,:)-mean(shITP_D))./std(shITP_D);
+data.phaseResp = phase; 
 
+% get the reation times from behavioral data
+data.studyRTs = data.behavior.studyRTs;
+data.studyRTquantiles = quantile(data.studyRTs(data.correctReps),(1:data.RTsplits)/data.RTsplits);
+data.testRTs  = data.behavior.testRTs;
+data.testRTquantiles = quantile(data.testRTs(data.correctReps),(1:data.RTsplits)/data.RTsplits);
+
+data.testTrialSets = cell(data.RTsplits,1);
+data.studyTrialSets = cell(data.RTsplits,1);
+for sp = 1:data.RTsplits
+    if sp==1
+        temp1 =  data.testRTs<=data.testRTquantiles(sp);
+        temp2 =  data.studyRTs<=data.studyRTquantiles(sp);
+    else 
+        temp1 =  data.testRTs>data.testRTquantiles(sp-1) & data.testRTs<=data.testRTquantiles(sp);
+        temp2 =  data.studyRTs>data.studyRTquantiles(sp-1) & data.studyRTs<=data.studyRTquantiles(sp);
+    end
+        data.testTrialSets{sp} = temp1 & data.correctReps;
+        data.studyTrialSets{sp} = temp2 & data.correctReps;
 end
 
-measurementTypes = {'phase','ITC_H','ITC_CR','ITC_D','ITC_Z','ITC_HBM','ITC_HBSD', ...
-    'ITC_CRBM','ITC_CRBSD','ITP_H','ITP_CR','ITP_D','ITP_Z'};
-for mt = measurementTypes
-    data.(mt{1}) = eval(mt{1});
-    eval( ['clear '  mt{1}]);
-end
 
+data.ITC_testRTSplits  = zeros(data.RTsplits,data.nChans,nEpSamps);
+data.ITC_BootSD_testRTSplits  = zeros(data.RTsplits,data.nChans,nEpSamps);
+data.ITC_studyRTSplits = zeros(data.RTsplits,data.nChans,nEpSamps);
+data.ITC_BootSD_studyRTSplits = zeros(data.RTsplits,data.nChans,nEpSamps);
+
+% Get ITC values per RT splits
+for ch = 1:nChans
+    for sp = 1:data.RTsplits
+        X = squeeze(data.phaseResp(ch,data.testTrialSets{sp},:));
+        data.ITC_testRTSplits(sp,ch,:)= itc(X);
+        data.ITC_BootSD_testRTSplits(sp,ch,:) = std(bootstrp(nBoot,@itc,X));
+        
+        X = squeeze(data.phaseResp(ch,data.studyTrialSets{sp},:));
+        data.ITC_studyRTSplits(sp,ch,:)= itc(X);
+        data.ITC_BootSD_studyRTSplits(sp,ch,:) = std(bootstrp(nBoot,@itc,X));
+    end
+end
 

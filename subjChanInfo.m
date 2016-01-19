@@ -6,7 +6,7 @@ function rois = subjChanInfo(subj)
 % updated May 09,2013
 
 if strcmp(subj,'04') || strcmp(subj,'CM')
-    rois.subjnum = subj;
+    rois.subjnum = '04';
     rois.subjname = 'CM';
     rois.goodChannels = [2:64];
     
@@ -22,7 +22,7 @@ if strcmp(subj,'04') || strcmp(subj,'CM')
     rois.amb = [];
 
 elseif strcmp(subj,'10')|| strcmp(subj,'KB')  %KB
-    rois.subjnum = subj;
+    rois.subjnum = '10';
     rois.subjname = 'KB';
     rois.goodChannels = [1:35];
     
@@ -38,7 +38,7 @@ elseif strcmp(subj,'10')|| strcmp(subj,'KB')  %KB
     rois.amb = [4,12];
     
 elseif strcmp(subj,'16b') || strcmp(subj,'SRb')
-    rois.subjnum = subj;
+    rois.subjnum = '16b';
     rois.subjname = 'SRb';
     rois.hemisphere = 'l';
     rois.allChans = 1:114;
@@ -62,7 +62,7 @@ elseif strcmp(subj,'16b') || strcmp(subj,'SRb')
     rois.amb = intersect(rois.goodChannels,46);
 	
 elseif strcmp(subj,'17b') || strcmp(subj,'RHb')
-    rois.subjnum = subj;
+    rois.subjnum = '17b';
     rois.subjname = 'RHb';
     rois.hemisphere = 'r';
     rois.allChans = 1:74;
@@ -86,7 +86,7 @@ elseif strcmp(subj,'17b') || strcmp(subj,'RHb')
     rois.amb = [];
     
 elseif strcmp(subj,'18') || strcmp(subj,'MD')
-    rois.subjnum = subj;
+    rois.subjnum = '18';
     rois.subjname = 'MD';
     rois.hemisphere = 'l';
     rois.allChans = 1:108;
@@ -109,7 +109,7 @@ elseif strcmp(subj,'18') || strcmp(subj,'MD')
     rois.aSPL = [];
     
 elseif strcmp(subj,'19') || strcmp(subj,'RB')
-    rois.subjnum = subj;
+    rois.subjnum = '19';
     rois.subjname = 'RB';
     rois.hemisphere = 'r';
     rois.allChans = 1:112;
@@ -134,7 +134,7 @@ elseif strcmp(subj,'19') || strcmp(subj,'RB')
     rois.pSPL = [ 1 9 10 11];
     
 elseif strcmp(subj,'20') || strcmp(subj,'DZa')
-    rois.subjnum = subj;
+    rois.subjnum = '20';
     rois.subjname = 'DZa';
     rois.allChans = 1:118;
     rois.goodChannels = 1:118;
@@ -151,7 +151,7 @@ elseif strcmp(subj,'20') || strcmp(subj,'DZa')
     rois.amb = [78,79];
     
 elseif strcmp(subj,'20b') || strcmp(subj,'DZb')
-    rois.subjnum = subj;
+    rois.subjnum = '20b';
     rois.subjname = 'DZb';
     rois.goodChannels = 1:118;
     
@@ -167,7 +167,7 @@ elseif strcmp(subj,'20b') || strcmp(subj,'DZb')
     rois.amb = [];
 	
 elseif strcmp(subj,'21') || strcmp(subj,'JTold')
-    rois.subjnum = subj;
+    rois.subjnum = '21';
     rois.subjname = 'JTold';
     rois.allChans = 1:118;
     rois.goodChannels = 1:118;
@@ -184,7 +184,7 @@ elseif strcmp(subj,'21') || strcmp(subj,'JTold')
     rois.amb = [62];    
     
 elseif strcmp(subj,'22') || strcmp(subj,'TC')
-    rois.subjnum = subj;
+    rois.subjnum = '22';
     rois.subjname = 'TC';
     rois.goodChannels = [1:60,62:90];
     
@@ -200,7 +200,7 @@ elseif strcmp(subj,'22') || strcmp(subj,'TC')
     rois.amb = [];
 
 elseif strcmp(subj,'24') || strcmp(subj,'LK')
-    rois.subjnum = subj;
+    rois.subjnum = '24';
     rois.subjname = 'LK';
     rois.hemisphere = 'l';
     rois.allChans = 1:122;
@@ -224,7 +224,7 @@ elseif strcmp(subj,'24') || strcmp(subj,'LK')
     rois.pSPL = [44 52 60 51 59];
     
 elseif strcmp(subj,'28') || strcmp(subj,'NC')
-    rois.subjnum = subj;
+    rois.subjnum = '28';
     rois.subjname = 'NC';
     rois.hemisphere = 'l';
     rois.allChans = 1:106;
@@ -251,7 +251,7 @@ elseif strcmp(subj,'28') || strcmp(subj,'NC')
     rois.aSPL = [1 2 9 17 25 40 48 64];
     
 elseif strcmp(subj,'29') || strcmp(subj,'JT')
-    rois.subjnum = subj;
+    rois.subjnum = '29';
     rois.subjname = 'JT';
     rois.hemisphere = 'r';
     rois.allChans = 1:128;

@@ -87,6 +87,7 @@ for s = 1:nSubjs
     data.conds{s,10}        = data.conds{s,9} & data.conds{s,7}; % correct at study and test
     data.conds{s,11}        = data.behavior{s}.studyRTs ;
     data.conds{s,12}        = data.behavior{s}.testRTs ;
+    data.conds{s,13}        = data.conds{s,7}&~isnan(data.conds{s,11}); % valid encoding, remembered trials
     
     data.studyIDatTest{s}   = data.behavior{s}.studyIDatTest;
     data.testRTs{s}         = dataIn.data.behavior.testRTs;

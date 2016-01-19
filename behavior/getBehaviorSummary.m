@@ -1,7 +1,8 @@
 % SS2e Analyze Behavior
 
 behavPerf = [];
-behavPerf.subjects      = {'SRb','MD','LK','NC','RR','RHb','JT2'};
+%behavPerf.subjects      = {'SRb','MD','LK','NC','RR','RHb','JT2'};
+behavPerf.subjects      = {'16b','17b','18','24','28','29','30'};
 behavPerf.dataPath      = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 nItemsPerBlock = 20;
 
@@ -52,7 +53,7 @@ behavPerf.testRTCondDiff        = getTwoSampStats(behavPerf.testRTs(behavPerf.co
 %% Plot the results by subject.
 inkscapePath='/Applications/Inkscape.app/Contents/Resources/bin/inkscape';
 
-nSubjs=5;
+nSubjs=7;
 AC = zeros(nSubjs,1);
 RTe = zeros(nSubjs,1);
 RTr = zeros(nSubjs,1);
@@ -63,8 +64,8 @@ for ss = 1:nSubjs
     RTr(ss) = mean([behavPerf.Subj_testRT_EncPerf(ss,:).mean]);   
 end
 
-shapes = 'odsph';
-figure(1); clf; set(gcf, 'position', [100 100 1000 600],'paperpositionmode','auto'); 
+shapes = 'ods><x+';
+figure(1); clf; set(gcf, 'position', [100 100 800 400],'paperpositionmode','auto'); 
 sD = 200;
 % accuracy plot
 axes('position',[0.05 0.1 0.18 0.85]); hold on;
@@ -72,7 +73,7 @@ xlim([0 1]); ylim([-0.1 1.1])
 
 for ss= 1:nSubjs
     s=scatter(0.5+randn*0.1,AC(ss),shapes(ss));
-    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD)
+    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
 end
 plot([0.2 0.8],[1 1]*mean(AC),'linewidth',3,'color',0.4*ones(1,3))
 set(gca,'fontsize',20,'xtick',[],'ytick',[0 0.5 1],'linewidth',2); 
@@ -82,11 +83,11 @@ text(0.5,0.1,sprintf(' M = %0.2f',mean(AC)),'fontsize',20,'horizontalalignment',
 
 % RTs (encoding)
 axes('position',[0.28 0.1 0.18 0.85]); hold on;
-xlim([0 1]); ylim([-0.2 2.2])
+xlim([0 1]); ylim([-0.2 2.6])
 
 for ss= 1:nSubjs
     s=scatter(0.5+randn*0.1,RTe(ss),shapes(ss));
-    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD)
+    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
 end
 plot([0.2 0.8],[1 1]*mean(RTe),'linewidth',3,'color',0.4*ones(1,3))
 set(gca,'fontsize',20,'xtick',[],'ytick',[0 1 2],'linewidth',2); 
@@ -95,11 +96,11 @@ text(0.5,0.2,sprintf(' M = %0.2fs',mean(RTe)),'fontsize',20,'horizontalalignment
 
 % RTs (retrieval)
 axes('position',[0.51 0.1 0.18 0.85]); hold on;
-xlim([0 1]); ylim([-0.2 2.2])
+xlim([0 1]); ylim([-0.2 2.6])
 
 for ss= 1:nSubjs
     s=scatter(0.5+randn*0.1,RTr(ss),shapes(ss));
-    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD)
+    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
 end
 plot([0.2 0.8],[1 1]*mean(RTr),'linewidth',3,'color',0.4*ones(1,3))
 set(gca,'fontsize',20,'xtick',[],'ytick',[0 1 2],'linewidth',2); 
@@ -112,7 +113,7 @@ xlim([0 1]); ylim([-0.6 0.6])
 
 for ss= 1:nSubjs
     s=scatter(0.5+randn*0.1,RTsCorr(ss),shapes(ss));
-    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD)
+    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
 end
 plot([0.2 0.8],[1 1]*mean(RTsCorr),'linewidth',3,'color',0.4*ones(1,3))
 set(gca,'fontsize',20,'xtick',[],'ytick',[-0.5 0 0.5],'linewidth',2); 
@@ -144,7 +145,7 @@ xlim([0 1]); ylim([-0.1 1.1])
 
 for ss= 1:nSubjs
     s=scatter(0.5+randn*0.1,AC(ss),shapes(ss));
-    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD)
+    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
 end
 plot([0.2 0.8],[1 1]*mean(AC),'linewidth',3,'color',0.4*ones(1,3))
 set(gca,'fontsize',20,'xtick',[],'ytick',[0 0.5 1],'linewidth',2); 
@@ -158,7 +159,7 @@ xlim([0 1]); ylim([-0.2 2.2])
 
 for ss= 1:nSubjs
     s=scatter(0.5+randn*0.1,RTe(ss),shapes(ss));
-    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD)
+    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
 end
 plot([0.2 0.8],[1 1]*mean(RTe),'linewidth',3,'color',0.4*ones(1,3))
 set(gca,'fontsize',20,'xtick',[],'ytick',[0 1 2],'linewidth',2); 
@@ -183,11 +184,11 @@ figure(2); clf; set(gcf, 'position', [100 100 500 400],'paperpositionmode','auto
 sD = 200;
 % RTs (retrieval)
 axes('position',[0.1 0.1 0.40 0.85]); hold on;
-xlim([0 1]); ylim([-0.2 2.2])
+xlim([0 1]); ylim([-0.2 2.6])
 
 for ss= 1:nSubjs
     s=scatter(0.5+randn*0.1,RTr(ss),shapes(ss));
-    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD)
+    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
 end
 plot([0.2 0.8],[1 1]*mean(RTr),'linewidth',3,'color',0.4*ones(1,3))
 set(gca,'fontsize',20,'xtick',[],'ytick',[0 1 2],'linewidth',2); 
@@ -199,7 +200,7 @@ axes('position',[0.55 0.1 0.50 0.85]); hold on;
 xlim([0 1]); ylim([-0.6 0.6])
 for ss= 1:nSubjs
     s=scatter(0.5+randn*0.1,RTsCorr(ss),shapes(ss));
-    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD)
+    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
 end
 plot([0.2 0.8],[1 1]*mean(RTsCorr),'linewidth',3,'color',0.4*ones(1,3))
 set(gca,'fontsize',20,'xtick',[],'ytick',[-0.5 0 0.5],'linewidth',2); 

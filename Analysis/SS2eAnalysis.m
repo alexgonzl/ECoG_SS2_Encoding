@@ -219,7 +219,8 @@ switch AnalysisNum
     case 7
         % correlation using only correct abstract/concrete & remembered
         %info            =[];
-        info.Analysis   = [hem '_' lock band '_correctAbsConcRem_testRTcorr'];
+        %info.Analysis   = [hem '_' lock band '_correctAbsConcRem_testRTcorr'];
+        info.Analysis   = [hem '_' lock band '_validEnctrialsRem_testRTcorr'];
         info.groupNames = {'IPS','SPL','AG'};
         %info.legend    = info.groupNames;
         
@@ -227,7 +228,7 @@ switch AnalysisNum
 %         cond2   = cellfun(@and,data.conds(subjs,2),data.conds(subjs,4),'uniformoutput',0); % correct concrete
 %         cond    = cellfun(@or,cond1,cond2,'uniformoutput',0);   % corrects
 %         cond    = cellfun(@and,cond,data.conds(subjs,5),'uniformoutput',0);           % remembered
-        cond    = data.conds(subjs,10);
+        cond    = data.conds(subjs,13);
         
         X       = subSelectByCell(data.BinERP(subjs),cond);
         RTs     = cell(nSubjs,1);
@@ -639,7 +640,7 @@ switch AnalysisNum
         info.cond2 	= cellfun(@and,data.conds(subjs,2),data.conds(subjs,4),'uniformoutput',0); % correct concrete
         info.cond2 	= cellfun(@and,info.cond2,data.conds(subjs,5),'uniformoutput',0); % correct remembered
         info.cond3  = cellfun(@or, info.cond1,info.cond2,'uniformoutput',0); %
-        cond        = data.conds(subjs,10);
+        cond        = data.conds(subjs,13);
         %info.legend 	= {'Correct Abs','Correct Conc'};
         
         

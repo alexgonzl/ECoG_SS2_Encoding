@@ -109,10 +109,49 @@ function varargout = plot2svg(param1,id,pixelfiletype)
 %  18-07-2013 - Small fix to exclude change log from help
 %               (thanks to Stuart Layton)
 %  30-11-2014 - Preliminary partial support for contour objects
+% Edits made by Jonathon Harding
+%  18-02-2015 - Removed calls to `find` inside variable indexes, as these
+%               are not necessary for MATLAB
+%  18-02-2015 - Added MException catching to try/catch blocks and the
+%               assocciated warning messages
+%  19-02-2015 - Updated line2svg to never create line segments longer than
+%               5000 points, even if the data includes some NaN elements
+%  19-02-2015 - convertunit now properly converts between MATLAB pixels
+%               (which are variable) and SVG pixels (fixed at 90 ppi) in
+%               all cases. Text will be appropriately sized when MATLAB is
+%               run in High-DPI mode
+%  19-02-2015 - Updated text rendering code. Translation and rotation are
+%               now applied in a single step, directly to the text object
+%               (rather than in groups surrounding it). Super- and
+%               sub-scripts are now generated using SVG standard values for
+%               baseline-shift and font-size percentages
+%  19-02-2015 - Support for MATLAB 2014b grids added (Grids can have custom
+%               opacity and colors). line2svg now supports opacity,
+%               although MATLAB does not allow ordinary line objects to
+%               have an alpha value, as far as I know
+%  19-02-2015 - Update for MATLAB 2015b: use axes OuterPosition for axes
+%               placement
+%  19-02-2015 - Properly calculate the axes limits when the user has
+%               specified infinite limits
+%  19-02-2015 - Added bug fix for when ticks are specified outside the plot
+%               window
+%  19-02-2015 - Bug fix for log scale minor ticks not showing above the
+%               largest power of 10. Inspired by Valentin, but used a
+%               simpler solution
+% Edits made by Juerg Schwizer
+%  14-05-2015 - Reworked fix for ticks specified outside the plot window
+%             - Added css property image-rendering: pixelated;
+%             - Removed type 'image' from AxesChildBounds() as it triggers
+%               an error under Matlab 2010.
+%  14-05-2015 - Reverted part of the text rendering of 19-02-2015 as it
+%               failed to handle exponents.
+%  14-05-2015 - Removed undefined variable which was obsolete
+
+
 
 global PLOT2SVG_globals
 global colorname
-progversion='16-Feb-2013';
+progversion='14-May-2015';
 PLOT2SVG_globals.runningIdNumber = 0;
 PLOT2SVG_globals.octave = false;
 PLOT2SVG_globals.checkUserData = true;
@@ -194,7 +233,7 @@ if ( nargin > 0)
         paperpos(4)=param1(2);
     end
 end
-paperpos = paperpos * 90 / PLOT2SVG_globals.ScreenPixelsPerInch;
+paperpos = convertunit(paperpos, 'pixels', 'pixels');
 if (nargin < 3)
     PLOT2SVG_globals.pixelfiletype = 'png';
 else
@@ -290,15 +329,15 @@ if PLOT2SVG_globals.checkUserData && isstruct(get(id,'UserData'))
                     clipz = clip(:, 3);
                 end
                 if strcmp(get(ax,'XScale'),'log')
-                    clipx(find(clipx<=0)) = NaN;
+                    clipx(clipx<=0) = NaN;
                     clipx=log10(clipx);
                 end
                 if strcmp(get(ax,'YScale'),'log')
-                    clipy(find(clipy<=0)) = NaN;
+                    clipy(clipy<=0) = NaN;
                     clipy=log10(clipy);
                 end
                 if strcmp(get(ax,'ZScale'),'log')
-                    clipz(find(clipz<=0)) = NaN;
+                    clipz(clipz<=0) = NaN;
                     clipz=log10(clipz);
                 end
                 [x,y,z] = project(clipx,clipy,clipz,projection);
@@ -589,8 +628,12 @@ if PLOT2SVG_globals.checkUserData && isstruct(get(id,'UserData'))
                         otherwise
                             error(['Unknown filter ''' filter(i).Subfilter.Type '''.']);
                     end
-                catch
-                    error([lasterr ' Error is caused by filter type ''' filter(i).Subfilter.Type '''.']);
+                catch ME
+                    errStr = ME.identifier;
+                    if isempty(errStr)
+                        errStr = ME.message;
+                    end
+                    error([errStr ' Error is caused by filter type ''' filter(i).Subfilter.Type '''.']);
                 end
             end
             fprintf(fid,'  </filter>\n');
@@ -730,22 +773,28 @@ for k = 1:length(index)
     end
 end
 
-function gridLines(fid, grouplabel, axpos, x, y, scolorname, gridlinestyle, linewidth, axlim, axtick, axindex_inner, corners, c)
+function gridLines(fid, grouplabel, axpos, x, y, scolorname, gridlinestyle, linewidth, axlim, axtick, axindex_inner, corners, c, gridAlpha)
 xg_line_start = interp1([axlim(1) axlim(2)],[x(corners(c(1))) x(corners(c(2)))], axtick);
 yg_line_start = interp1([axlim(1) axlim(2)],[y(corners(c(1))) y(corners(c(2)))], axtick);
 xg_line_end = interp1([axlim(1) axlim(2)],[x(corners(c(3))) x(corners(c(4)))], axtick);
 yg_line_end = interp1([axlim(1) axlim(2)],[y(corners(c(3))) y(corners(c(4)))], axtick);
+if nargin < 14 || isempty(gridAlpha)
+    gridAlpha = 1;
+end
 for i = axindex_inner
-    line2svg(fid, grouplabel, axpos, [xg_line_start(i) xg_line_end(i)],[yg_line_start(i) yg_line_end(i)], scolorname, gridlinestyle, linewidth)
+    line2svg(fid, grouplabel, axpos, [xg_line_start(i) xg_line_end(i)],[yg_line_start(i) yg_line_end(i)], scolorname, gridlinestyle, linewidth, gridAlpha)
 end
 
-function minorGridLines(fid, grouplabel, axpos, x, y, scolorname, minor_gridlinestyle, linewidth, axlim, minor_axtick, corners, c)
+function minorGridLines(fid, grouplabel, axpos, x, y, scolorname, minor_gridlinestyle, linewidth, axlim, minor_axtick, corners, c, gridAlpha)
 xg_line_start = interp1([axlim(1) axlim(2)],[x(corners(c(1))) x(corners(c(2)))], minor_axtick);
 yg_line_start = interp1([axlim(1) axlim(2)],[y(corners(c(1))) y(corners(c(2)))], minor_axtick);
 xg_line_end = interp1([axlim(1) axlim(2)],[x(corners(c(3))) x(corners(c(4)))], minor_axtick);
 yg_line_end = interp1([axlim(1) axlim(2)],[y(corners(c(3))) y(corners(c(4)))], minor_axtick);
+if nargin < 14 || isempty(gridAlpha)
+    gridAlpha = 1;
+end
 for i = 1:length(xg_line_start)
-    line2svg(fid, grouplabel, axpos, [xg_line_start(i) xg_line_end(i)],[yg_line_start(i) yg_line_end(i)], scolorname, minor_gridlinestyle, linewidth)
+    line2svg(fid, grouplabel, axpos, [xg_line_start(i) xg_line_end(i)],[yg_line_start(i) yg_line_end(i)], scolorname, minor_gridlinestyle, linewidth, gridAlpha)
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SUBFUNCTIONS %%%%%
@@ -783,20 +832,24 @@ groupax=group;
 axlimx=get(ax,'XLim');
 axlimy=get(ax,'YLim');
 axlimz=get(ax,'ZLim');
+[axinflimx, axinflimy, axinflimz] = AxesChildBounds(ax);
+axlimx(isinf(axlimx)) = axinflimx(isinf(axlimx));
+axlimy(isinf(axlimy)) = axinflimy(isinf(axlimy));
+axlimz(isinf(axlimz)) = axinflimz(isinf(axlimz));
 axlimxori=axlimx;
 axlimyori=axlimy;
 axlimzori=axlimz;
 if strcmp(get(ax,'XScale'),'log')
     axlimx=log10(axlimx);
-    axlimx(find(isinf(axlimx)))=0;
+    axlimx(isinf(axlimx))=0;
 end
 if strcmp(get(ax,'YScale'),'log')
     axlimy=log10(axlimy);
-    axlimy(find(isinf(axlimy)))=0;
+    axlimy(isinf(axlimy))=0;
 end
 if strcmp(get(ax,'ZScale'),'log')
     axlimz=log10(axlimz);
-    axlimz(find(isinf(axlimz)))=0;
+    axlimz(isinf(axlimz))=0;
 end
 if strcmp(get(ax,'XDir'),'reverse')
     axlimx = fliplr(axlimx);
@@ -898,7 +951,7 @@ if strcmp(get(ax,'Visible'),'on')
         for stick = [2*axxtick(1)-axxtick(2) axxtick]
             minor_axxtick = [minor_axxtick minor_lin_sticks + stick]; 
         end
-        minor_axxtick = minor_axxtick(find(minor_axxtick > min(axlimx) & minor_axxtick < max(axlimx)));
+        minor_axxtick = minor_axxtick(minor_axxtick > min(axlimx) & minor_axxtick < max(axlimx));
     else
         minor_axxtick = [];
     end
@@ -908,7 +961,7 @@ if strcmp(get(ax,'Visible'),'on')
         for stick = [2*axytick(1)-axytick(2) axytick]
             minor_axytick = [minor_axytick minor_lin_sticks + stick]; 
         end
-        minor_axytick = minor_axytick(find(minor_axytick > min(axlimy) & minor_axytick < max(axlimy)));
+        minor_axytick = minor_axytick(minor_axytick > min(axlimy) & minor_axytick < max(axlimy));
     else
         minor_axytick = [];
     end
@@ -918,7 +971,7 @@ if strcmp(get(ax,'Visible'),'on')
         for stick = [2*axztick(1)-axztick(2) axztick]
             minor_axztick = [minor_axztick minor_lin_sticks + stick]; 
         end
-        minor_axztick = minor_axztick(find(minor_axztick > min(axlimz) & minor_axztick < max(axlimz)));
+        minor_axztick = minor_axztick(minor_axztick > min(axlimz) & minor_axztick < max(axlimz));
     else
         minor_axztick = [];
     end
@@ -946,34 +999,34 @@ if strcmp(get(ax,'Visible'),'on')
         axxtick = log10(get(ax,'XTick'));
         minor_axxtick = [];
         if ~isempty(axxtick)
-            all_axxtick = axxtick(1):1:axxtick(end); 
+            all_axxtick = axxtick(1):1:(axxtick(end) + 1); 
             for stick = all_axxtick
                 minor_axxtick = [minor_axxtick minor_log_sticks + stick]; 
             end
         end
-        minor_axxtick = minor_axxtick(find(minor_axxtick > min(axlimx) & minor_axxtick < max(axlimx)));
+        minor_axxtick = minor_axxtick(minor_axxtick > min(axlimx) & minor_axxtick < max(axlimx));
     end
     if strcmp(get(ax,'YScale'),'log')
         axytick=log10(get(ax,'YTick'));
         minor_axytick = [];
         if ~isempty(axytick)
-            all_axytick = axytick(1):1:axytick(end); 
+            all_axytick = axytick(1):1:(axytick(end) + 1); 
             for stick = all_axytick
                 minor_axytick = [minor_axytick minor_log_sticks + stick]; 
             end
         end
-        minor_axytick = minor_axytick(find(minor_axytick > min(axlimy) & minor_axytick < max(axlimy)));
+        minor_axytick = minor_axytick(minor_axytick > min(axlimy) & minor_axytick < max(axlimy));
     end
     if strcmp(get(ax,'ZScale'),'log')
         axztick=log10(get(ax,'ZTick'));
         minor_axztick = [];
         if ~isempty(axztick)
-            all_axztick = axztick(1):1:axztick(end); 
+            all_axztick = axztick(1):1:(axztick(end) + 1); 
             for stick = all_axztick
                 minor_axztick = [minor_axztick minor_log_sticks + stick]; 
             end
         end
-        minor_axztick = minor_axztick(find(minor_axztick > min(axlimz) & minor_axztick < max(axlimz)));
+        minor_axztick = minor_axztick(minor_axztick > min(axlimz) & minor_axztick < max(axlimz));
     end
     % Draw back faces 
     linewidth=get(ax,'LineWidth');
@@ -991,15 +1044,31 @@ if strcmp(get(ax,'Visible'),'on')
         p = back_faces(pindex);
         for k = 1:size(corners,1)
             selectedCorners = squeeze(corners(k,:,p));
+            if verLessThan('matlab', '8.4.0')
+                gridAlpha = 1;
+                minorGridAlpha = 1;
+            else
+                gridAlpha = get(ax, 'GridAlpha');
+                minorGridAlpha = get(ax, 'MinorGridAlpha');
+            end
             switch corners(k,1,p)
                 case 1 % x
                     % Draw x-grid
-                    scolorname = searchcolor(id,get(ax,'XColor'));
+                    if verLessThan('matlab', '8.4.0')
+                        scolorname = get(ax, 'XColor');
+                    else
+                        if strcmp(get(ax, 'GridColorMode'), 'auto')
+                            scolorname = get(ax, 'XColor');
+                        else
+                            scolorname = get(ax, 'GridColor');
+                        end
+                    end
+                    scolorname = searchcolor(id,scolorname);
                     if strcmp(get(ax,'XGrid'),'on') && gridBehind
                         if axlimx(1)~=axlimx(2)
-                            gridLines(fid, grouplabel, axpos, x, y, scolorname, gridlinestyle, linewidth, axlimx, axxtick, axxindex_inner, selectedCorners, [2 3 4 5])
+                            gridLines(fid, grouplabel, axpos, x, y, scolorname, gridlinestyle, linewidth, axlimx, axxtick, axxindex_inner, selectedCorners, [2 3 4 5], gridAlpha)
                             if strcmp(get(ax,'XTickMode'),'auto') && strcmp(get(ax,'XMinorGrid'),'on') && ~isempty(minor_axxtick)
-                                minorGridLines(fid, grouplabel, axpos, x, y, scolorname, minor_gridlinestyle, linewidth, axlimx, minor_axxtick, selectedCorners, [2 3 4 5])                                
+                                minorGridLines(fid, grouplabel, axpos, x, y, scolorname, minor_gridlinestyle, linewidth, axlimx, minor_axxtick, selectedCorners, [2 3 4 5], minorGridAlpha)                                
                             end
                         end
                     end
@@ -1016,12 +1085,21 @@ if strcmp(get(ax,'Visible'),'on')
                     end
                 case 2 % y
                     % Draw y-grid
-                    scolorname = searchcolor(id,get(ax,'YColor'));
+                    if verLessThan('matlab', '8.4.0')
+                        scolorname = get(ax, 'YColor');
+                    else
+                        if strcmp(get(ax, 'GridColorMode'), 'auto')
+                            scolorname = get(ax, 'YColor');
+                        else
+                            scolorname = get(ax, 'GridColor');
+                        end
+                    end
+                    scolorname = searchcolor(id,scolorname);
                     if strcmp(get(ax,'YGrid'),'on') && gridBehind
                         if axlimy(1)~=axlimy(2)
-                            gridLines(fid, grouplabel, axpos, x, y, scolorname, gridlinestyle, linewidth, axlimy, axytick, axyindex_inner, selectedCorners, [2 3 4 5])
+                            gridLines(fid, grouplabel, axpos, x, y, scolorname, gridlinestyle, linewidth, axlimy, axytick, axyindex_inner, selectedCorners, [2 3 4 5], gridAlpha)
                             if strcmp(get(ax,'YTickMode'),'auto') && strcmp(get(ax,'YMinorGrid'),'on') && ~isempty(minor_axytick)
-                                minorGridLines(fid, grouplabel, axpos, x, y, scolorname, minor_gridlinestyle, linewidth, axlimy, minor_axytick, selectedCorners, [2 3 4 5])                                                                
+                                minorGridLines(fid, grouplabel, axpos, x, y, scolorname, minor_gridlinestyle, linewidth, axlimy, minor_axytick, selectedCorners, [2 3 4 5], minorGridAlpha)                                                                
                             end
                         end
                     end
@@ -1038,12 +1116,21 @@ if strcmp(get(ax,'Visible'),'on')
                     end
                 case 3 % z
                     % Draw z-grid
-                    scolorname = searchcolor(id,get(ax,'ZColor'));
+                    if verLessThan('matlab', '8.4.0')
+                        scolorname = get(ax, 'ZColor');
+                    else
+                        if strcmp(get(ax, 'GridColorMode'), 'auto')
+                            scolorname = get(ax, 'ZColor');
+                        else
+                            scolorname = get(ax, 'GridColor');
+                        end
+                    end
+                    scolorname = searchcolor(id,scolorname);
                     if strcmp(get(ax,'ZGrid'),'on') && gridBehind
                         if axlimz(1)~=axlimz(2)
-                            gridLines(fid, grouplabel, axpos, x, y, scolorname, gridlinestyle, linewidth, axlimz, axztick, axzindex_inner, selectedCorners, [2 3 4 5])
+                            gridLines(fid, grouplabel, axpos, x, y, scolorname, gridlinestyle, linewidth, axlimz, axztick, axzindex_inner, selectedCorners, [2 3 4 5], gridAlpha)
                             if strcmp(get(ax,'ZTickMode'),'auto') && strcmp(get(ax,'ZMinorGrid'),'on') && ~isempty(minor_axztick)
-                                minorGridLines(fid, grouplabel, axpos, x, y, scolorname, minor_gridlinestyle, linewidth, axlimz, minor_axztick, selectedCorners, [2 3 4 5])                                                                
+                                minorGridLines(fid, grouplabel, axpos, x, y, scolorname, minor_gridlinestyle, linewidth, axlimz, minor_axztick, selectedCorners, [2 3 4 5], minorGridAlpha)                                                                
                             end
                         end
                     end
@@ -1377,13 +1464,13 @@ for i=length(axchild):-1:1
         linex = get(axchild(i),'XData');
         linex = linex(:)'; % Octave stores the data in a column vector
         if strcmp(get(ax,'XScale'),'log')
-            linex(find(linex<=0)) = NaN;
+            linex(linex<=0) = NaN;
             linex=log10(linex);
         end
         liney=get(axchild(i),'YData');
         liney = liney(:)'; % Octave stores the data in a column vector        
         if strcmp(get(ax,'YScale'),'log')
-            liney(find(liney<=0)) = NaN;
+            liney(liney<=0) = NaN;
             liney=log10(liney);
         end
         linez=get(axchild(i),'ZData');
@@ -1392,7 +1479,7 @@ for i=length(axchild):-1:1
             linez = zeros(size(linex));    
         end
         if strcmp(get(ax,'ZScale'),'log')
-            linez(find(linez<=0)) = NaN;
+            linez(linez<=0) = NaN;
             linez=log10(linez);
         end
         [x,y,z] = project(linex,liney,linez,projection);
@@ -1420,30 +1507,32 @@ for i=length(axchild):-1:1
         end
         line2svg(fid,groupax,axpos,x,y,scolorname,linestyle,linewidth)
         % put the markers into a subgroup of the lines
-        fprintf(fid,'<g>\n');
-        switch marker
-            case 'none';
-            case '.',group=group+1;circle2svg(fid,group,axpos,x,y,markersize*0.25,'none',markeredgecolorname,linewidth);
-            case 'o',group=group+1;circle2svg(fid,group,axpos,x,y,markersize*0.75,markeredgecolorname,markerfacecolorname,linewidth);
-            case '+',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,5)+ones(length(linex),1)*[-1 1 NaN 0 0]*markersize,y'*ones(1,5)+ones(length(liney),1)*[0 0 NaN -1 1]*markersize,markeredgecolorname,'-',linewidth,markeredgecolorname, 1, 1, false);   
-            case '*',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,11)+ones(length(linex),1)*[-1 1 NaN 0 0 NaN -0.7 0.7 NaN -0.7 0.7]*markersize,y'*ones(1,11)+ones(length(liney),1)*[0 0 NaN -1 1 NaN 0.7 -0.7 NaN -0.7 0.7]*markersize,markeredgecolorname,'-',linewidth,markeredgecolorname, 1, 1, false);
-            case 'x',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,5)+ones(length(linex),1)*[-0.7 0.7 NaN -0.7 0.7]*markersize,y'*ones(1,5)+ones(length(liney),1)*[0.7 -0.7 NaN -0.7 0.7]*markersize,markeredgecolorname,'-',linewidth,markeredgecolorname, 1, 1, false);
-            %% Octave keeps s, d, p and h in the HandleGraphics object, for the square, diamond, pentagram, and hexagram markers, respectively -- Jakob Malm
-            case {'square', 's'},group=group+1;patch2svg(fid,group,axpos,x'*ones(1,5)+ones(length(linex),1)*[-1 -1 1 1 -1]*markersize,y'*ones(1,5)+ones(length(liney),1)*[-1 1 1 -1 -1]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
-            case {'diamond', 'd'},group=group+1;patch2svg(fid,group,axpos,x'*ones(1,5)+ones(length(linex),1)*[-0.7071 0 0.7071 0 -0.7071]*markersize,y'*ones(1,5)+ones(length(liney),1)*[0 1 0 -1 0]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
-            case {'pentagram', 'p'},group=group+1;patch2svg(fid,group,axpos,...
-                    x'*ones(1,11)+ones(length(linex),1)*[0 0.1180 0.5 0.1910 0.3090 0 -0.3090 -0.1910 -0.5 -0.1180 0]*1.3*markersize,...
-                    y'*ones(1,11)+ones(length(liney),1)*[-0.5257 -0.1625 -0.1625 0.0621 0.4253 0.2008 0.4253 0.0621 -0.1625 -0.1625 -0.5257]*1.3*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
-            case {'hexagram', 'h'},group=group+1;patch2svg(fid,group,axpos,...
-                    x'*ones(1,13)+ones(length(linex),1)*[0 0.2309 0.6928 0.4619 0.6928 0.2309 0 -0.2309 -0.6928 -0.4619 -0.6928 -0.2309 0]*1*markersize,...
-                    y'*ones(1,13)+ones(length(liney),1)*[0.8 0.4 0.4 0 -0.4 -0.4 -0.8 -0.4 -0.4 0 0.4 0.4 0.8]*1*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);    
-            case '^',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,4)+ones(length(linex),1)*[-1 1 0 -1]*markersize,y'*ones(1,4)+ones(length(liney),1)*[0.577 0.577 -1.155 0.577]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
-            case 'v',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,4)+ones(length(linex),1)*[-1 1 0 -1]*markersize,y'*ones(1,4)+ones(length(liney),1)*[-0.577 -0.577 1.155 -0.577]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
-            case '<',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,4)+ones(length(linex),1)*[0.577 0.577 -1.155 0.577]*markersize,y'*ones(1,4)+ones(length(liney),1)*[-1 1 0 -1]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
-            case '>',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,4)+ones(length(linex),1)*[-0.577 -0.577 1.155 -0.577]*markersize,y'*ones(1,4)+ones(length(liney),1)*[-1 1 0 -1]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
+        if  ~strcmp(marker, 'none') % but only do it if we actually are drawing markers
+            fprintf(fid,'<g>\n');
+            switch marker
+                case 'none';
+                case '.',group=group+1;circle2svg(fid,group,axpos,x,y,markersize*0.25,'none',markeredgecolorname,linewidth);
+                case 'o',group=group+1;circle2svg(fid,group,axpos,x,y,markersize*0.75,markeredgecolorname,markerfacecolorname,linewidth);
+                case '+',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,5)+ones(length(linex),1)*[-1 1 NaN 0 0]*markersize,y'*ones(1,5)+ones(length(liney),1)*[0 0 NaN -1 1]*markersize,markeredgecolorname,'-',linewidth,markeredgecolorname, 1, 1, false);   
+                case '*',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,11)+ones(length(linex),1)*[-1 1 NaN 0 0 NaN -0.7 0.7 NaN -0.7 0.7]*markersize,y'*ones(1,11)+ones(length(liney),1)*[0 0 NaN -1 1 NaN 0.7 -0.7 NaN -0.7 0.7]*markersize,markeredgecolorname,'-',linewidth,markeredgecolorname, 1, 1, false);
+                case 'x',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,5)+ones(length(linex),1)*[-0.7 0.7 NaN -0.7 0.7]*markersize,y'*ones(1,5)+ones(length(liney),1)*[0.7 -0.7 NaN -0.7 0.7]*markersize,markeredgecolorname,'-',linewidth,markeredgecolorname, 1, 1, false);
+                %% Octave keeps s, d, p and h in the HandleGraphics object, for the square, diamond, pentagram, and hexagram markers, respectively -- Jakob Malm
+                case {'square', 's'},group=group+1;patch2svg(fid,group,axpos,x'*ones(1,5)+ones(length(linex),1)*[-1 -1 1 1 -1]*markersize,y'*ones(1,5)+ones(length(liney),1)*[-1 1 1 -1 -1]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
+                case {'diamond', 'd'},group=group+1;patch2svg(fid,group,axpos,x'*ones(1,5)+ones(length(linex),1)*[-0.7071 0 0.7071 0 -0.7071]*markersize,y'*ones(1,5)+ones(length(liney),1)*[0 1 0 -1 0]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
+                case {'pentagram', 'p'},group=group+1;patch2svg(fid,group,axpos,...
+                        x'*ones(1,11)+ones(length(linex),1)*[0 0.1180 0.5 0.1910 0.3090 0 -0.3090 -0.1910 -0.5 -0.1180 0]*1.3*markersize,...
+                        y'*ones(1,11)+ones(length(liney),1)*[-0.5257 -0.1625 -0.1625 0.0621 0.4253 0.2008 0.4253 0.0621 -0.1625 -0.1625 -0.5257]*1.3*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
+                case {'hexagram', 'h'},group=group+1;patch2svg(fid,group,axpos,...
+                        x'*ones(1,13)+ones(length(linex),1)*[0 0.2309 0.6928 0.4619 0.6928 0.2309 0 -0.2309 -0.6928 -0.4619 -0.6928 -0.2309 0]*1*markersize,...
+                        y'*ones(1,13)+ones(length(liney),1)*[0.8 0.4 0.4 0 -0.4 -0.4 -0.8 -0.4 -0.4 0 0.4 0.4 0.8]*1*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);    
+                case '^',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,4)+ones(length(linex),1)*[-1 1 0 -1]*markersize,y'*ones(1,4)+ones(length(liney),1)*[0.577 0.577 -1.155 0.577]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
+                case 'v',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,4)+ones(length(linex),1)*[-1 1 0 -1]*markersize,y'*ones(1,4)+ones(length(liney),1)*[-0.577 -0.577 1.155 -0.577]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
+                case '<',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,4)+ones(length(linex),1)*[0.577 0.577 -1.155 0.577]*markersize,y'*ones(1,4)+ones(length(liney),1)*[-1 1 0 -1]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
+                case '>',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,4)+ones(length(linex),1)*[-0.577 -0.577 1.155 -0.577]*markersize,y'*ones(1,4)+ones(length(liney),1)*[-1 1 0 -1]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
+            end
+            % close the marker group
+            fprintf(fid,'</g>\n');
         end
-        % close the marker group
-        fprintf(fid,'</g>\n');
         animation2svg(fid, axchild(i));
         % close the line group
         fprintf(fid,'</g>\n');
@@ -1882,12 +1971,12 @@ for i=length(axchild):-1:1
         position = get(axchild(i),'Position');
         posx = [position(1) position(1)+position(3)];
         if strcmp(get(ax,'XScale'),'log')
-            posx(find(posx <= 0)) = NaN;
+            posx(posx <= 0) = NaN;
             posx=log10(posx);
         end
         posy = [position(2) position(2)+position(4)];
         if strcmp(get(ax,'YScale'),'log')
-            posy(find(posy <= 0)) = NaN;
+            posy(posy <= 0) = NaN;
             posy=log10(posy);
         end
         posz=[0 0];
@@ -2115,7 +2204,7 @@ for i=length(axchild):-1:1
                 % Workaround for Inkscape filter bug
                 fprintf(fid,'<rect x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f" fill="none" stroke="none" />\n', boundingBox(1), boundingBox(2), boundingBox(3), boundingBox(4));
             end
-            fprintf(fid,'<image x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f" image-rendering="optimizeSpeed" preserveAspectRatio="none" xlink:href="%s" />\n', pointsx, pointsy, lx, ly, filename);
+            fprintf(fid,'<image x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f" style="image-rendering: pixelated;" image-rendering="optimizeSpeed" preserveAspectRatio="none" xlink:href="%s" />\n', pointsx, pointsy, lx, ly, filename);
             fprintf(fid,'</g>\n');
         else
             fprintf(fid,'<g id="%s" %s>\n', createId, filterString);
@@ -2123,7 +2212,7 @@ for i=length(axchild):-1:1
                 % Workaround for Inkscape filter bug
                 fprintf(fid,'<rect x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f" fill="none" stroke="none" />\n', boundingBox(1), boundingBox(2), boundingBox(3), boundingBox(4));
             end
-            fprintf(fid,'<image x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f" image-rendering="optimizeSpeed" preserveAspectRatio="none" xlink:href="%s" />\n', pointsx, pointsy, lx, ly, filename);
+            fprintf(fid,'<image x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f" style="image-rendering: pixelated;" image-rendering="optimizeSpeed" preserveAspectRatio="none" xlink:href="%s" />\n', pointsx, pointsy, lx, ly, filename);
             fprintf(fid,'</g>\n');
         end
     elseif strcmp(get(axchild(i),'Type'), 'hggroup')
@@ -2333,34 +2422,39 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % create a line segment
 % this algorthm was optimized for large segement counts
-function line2svg(fid, group, axpos, x, y, scolorname, style, width)
+function line2svg(fid, ~, ~, x, y, scolorname, style, width, strokeopacity)
+SEG_SIZE = 5000;
+if nargin < 9 || ~isscalar(strokeopacity)
+    strokeopacity = 1;
+end
 if ~strcmp(style,'none')
     pattern = lineStyle2svg(style, width);
-    if (isnan(x) == zeros(size(x)) & isnan(y) == zeros(size(y)))
-        for j = 1:20000:length(x)
-            xx = x(j:min(length(x), j + 19999));
-            yy = y(j:min(length(y), j + 19999));
-            fprintf(fid,'      <polyline fill="none" stroke="%s" stroke-width="%0.1fpt" %s points="', scolorname, width, pattern);
-            fprintf(fid,'%0.3f,%0.3f ',[xx;yy]);
-            fprintf(fid,'"/>\n');
+   
+    skip_pts = reshape(find(isnan(x) | isnan(y)), [],1);
+    start_pts = [1; skip_pts+1];
+    end_pts = [skip_pts-1; numel(x)];
+    k = 1;
+    while k <= numel(start_pts)
+        if (end_pts(k) - start_pts(k)) > SEG_SIZE
+            tmp_sPts = zeros(numel(start_pts)+1,1);
+            tmp_ePts = zeros(numel(start_pts)+1,1);
+            tmp_sPts(1:k) = start_pts(1:k);
+            tmp_ePts(1:k-1) = end_pts(1:k-1);
+            tmp_ePts(k) = tmp_sPts(k)+SEG_SIZE-1;
+            tmp_sPts(k+1) = tmp_sPts(k)+SEG_SIZE-1;
+            tmp_ePts(k+1:end) = end_pts(k:end);
+            tmp_sPts(k+2:end) = start_pts(k+1:end);
+            start_pts = tmp_sPts;
+            end_pts = tmp_ePts;
         end
-    else
-        parts = find(isnan(x) + isnan(y));
-        if ~isempty(parts) && (parts(1) ~= 1)
-            parts=[0 parts];
-        end
-        if parts(length(parts)) ~= length(x)
-            parts = [parts length(x) + 1];
-        end
-        for j = 1:(length(parts) - 1)
-            xx = x((parts(j) + 1):(parts(j + 1) - 1));
-            yy = y((parts(j) + 1):(parts(j + 1) - 1));
-            if ~isempty(xx)
-                fprintf(fid,'      <polyline fill="none" stroke="%s" stroke-width="%0.1fpt" %s points="', scolorname, width, pattern);
-                fprintf(fid,'%0.3f,%0.3f ', [xx;yy]);
-                fprintf(fid,'"/>\n');
-            end
-        end
+        k = k+1;
+    end
+    for j=1:numel(start_pts)
+        xx=x(start_pts(j):end_pts(j));
+        yy=y(start_pts(j):end_pts(j));
+        fprintf(fid,'      <polyline fill="none" stroke="%s" stroke-width="%0.1fpt" %s stroke-opacity="%0.2f" points="', scolorname, width, pattern, strokeopacity);
+        fprintf(fid,'%0.5f,%0.5f ',[xx;yy]);
+        fprintf(fid,'"/>\n');
     end
 end
 
@@ -2379,7 +2473,11 @@ end
 function control2svg(fid,id,ax,group,paperpos)
 global PLOT2SVG_globals
 set(ax,'Units','pixels');
-pos=get(ax,'Position');
+if verLessThan('matlab', '8.4.0')
+    pos=get(ax,'Position');
+else
+    pos=ax.OuterPosition;
+end
 pict=getframe(id,pos);
 if isempty(pict.colormap)
     pict.colormap=colormap;
@@ -2417,6 +2515,7 @@ fprintf(fid,'<image x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f" image-rende
 function text2svg(fid,group,axpos,paperpos,id,ax,projection)
 global PLOT2SVG_globals;
 originalTextUnits=get(id,'Units');
+originalTextPosition = get(id, 'Position');
 if PLOT2SVG_globals.octave
 	set(id,'Units','data');
 else
@@ -2460,8 +2559,8 @@ textvalign = get(id,'VerticalAlignment');
 textalign = get(id,'HorizontalAlignment');
 texttext = get(id,'String');
 textrot = get(id,'Rotation');
-dx = sin(textrot * pi / 180) * (fontsize * 1.25 * 1.2);
-dy = cos(textrot * pi / 180) * (fontsize * 1.25 * 1.2);
+dx = sin(textrot * pi / 180) * convertunit(fontsize * 1.2, 'points', 'pixels');
+dy = cos(textrot * pi / 180) * convertunit(fontsize * 1.2, 'points', 'pixels');
 lines = max(size(get(id,'String'),1),1);
 if size(texttext,2)~=0
     j = 1;
@@ -2477,6 +2576,7 @@ else
     label2svg(fid,group,axpos,id,x,y,'',textalign,textrot,textvalign,lines,paperpos,font_color,0)
 end
 set(id,'Units',originalTextUnits);
+set(id,'Position', originalTextPosition);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % adds the exponents to the axis thickmarks if needed
@@ -2505,9 +2605,13 @@ if strcmp(get(ax,'XTickLabelMode'),'auto') && strcmp(get(ax,'XScale'),'linear')
     labelpos = labelpos(:);
     indexnz = find(labelpos ~= 0);
     if (~isempty(indexnz) && ~isempty(numlabels))
-        ratio=numlabels(indexnz)./labelpos(indexnz);
+        if (length(indexnz) == length(numlabels) && max(indexnz) <= length(numlabels))
+            ratio = numlabels(indexnz)./labelpos(indexnz);
+        else
+            ratio = 1;
+        end
         if round(log10(ratio(1))) ~= 0 && ratio(1) ~= 0
-            exptext = sprintf('&#215; 10<tspan font-size="%0.1fpt" dy="%0.1fpt">%g</tspan>', 0.7*fontsize, -0.7*fontsize,-log10(ratio(1)));
+            exptext = sprintf('&#215; 10<tspan style="font-size:65%%;baseline-shift:super">%g</tspan>', -log10(ratio(1)));
             label2svg(fid,group,axpos,ax,(axpos(1)+axpos(3))*paperpos(3),(1-axpos(2))*paperpos(4)+3*fontsize,exptext,'right',0,'top',1,paperpos,font_color,0)           
         end
     end
@@ -2533,9 +2637,13 @@ if strcmp(get(ax,'YTickLabelMode'),'auto') && strcmp(get(ax,'YScale'),'linear')
     labelpos = labelpos(:);
     indexnz = find(labelpos ~= 0);
     if (~isempty(indexnz) && ~isempty(numlabels))
-        ratio = numlabels(indexnz)./labelpos(indexnz);
+        if (length(indexnz) == length(numlabels) && max(indexnz) <= length(numlabels))
+            ratio = numlabels(indexnz)./labelpos(indexnz);
+        else
+            ratio = 1;
+        end	
         if round(log10(ratio(1))) ~= 0 && ratio(1) ~= 0
-            exptext = sprintf('&#215; 10<tspan font-size="%0.1fpt" dy="%0.1fpt">%g</tspan>',0.7*fontsize,-0.7*fontsize,-log10(ratio(1)));
+            exptext = sprintf('&#215; 10<tspan style="font-size:65%%;baseline-shift:super">%g</tspan>', -log10(ratio(1)));
             label2svg(fid,group,axpos,ax,axpos(1)*paperpos(3),(1-(axpos(2)+axpos(4)))*paperpos(4)-0.5*fontsize,exptext,'left',0,'bottom',1,paperpos,font_color,0)           
         end
     end
@@ -2561,9 +2669,13 @@ if strcmp(get(ax,'ZTickLabelMode'),'auto') && strcmp(get(ax,'ZScale'),'linear')
     labelpos = labelpos(:);
     indexnz = find(labelpos ~= 0);
     if (~isempty(indexnz) && ~isempty(numlabels))
-        ratio = numlabels(indexnz)./labelpos(indexnz);
+        if (length(indexnz) == length(numlabels) && max(indexnz) <= length(numlabels))
+            ratio = numlabels(indexnz)./labelpos(indexnz);
+        else
+            ratio = 1;
+        end
         if round(log10(ratio(1))) ~= 0 && ratio(1) ~= 0
-            exptext = sprintf('&#215; 10<tspan font-size="%0.1fpt" dy="%0.1fpt">%g</tspan>',0.7*fontsize,-0.7*fontsize,-log10(ratio(1)));
+            exptext = sprintf('&#215; 10<tspan style="font-size:65%%;baseline-shift:super">%g</tspan>', -log10(ratio(1)));
             label2svg(fid,group,axpos,ax,axpos(1)*paperpos(3),(1-(axpos(2)+axpos(4)))*paperpos(4)-0.5*fontsize,exptext,'left',0,'top',1,paperpos,font_color,0)           
         end
     end
@@ -2596,9 +2708,6 @@ else
     latex=1;
 end
 fontsize=convertunit(get(id,'FontSize'),get(id,'FontUnits'),'points', axpos(4));   % convert fontsize to inches
-paperposOriginal=get(gcf,'Position');
-fontsize=fontsize*paperpos(4)/paperposOriginal(4);
-textfontsize=textfontsize*paperpos(4)/paperposOriginal(4);
 fontweight = get(id,'FontWeight');
 switch lower(fontweight)
     case 'bold', fweight = ' font-weight="bold"';
@@ -2750,6 +2859,8 @@ if latex==1
     
     %fprintf('%s\n', tex);
     tex=latex2svg(tex, textfontname, textfontsize, 0);
+else
+    tex=sprintf('<tspan>%s</tspan>', tex);
 end
 if isempty(tex)
     return;
@@ -2787,80 +2898,69 @@ if ~isempty(StringText)
         fprintf(['Warning: Found a closed brace without a previously opened brace. Latex string ''' StringText ''' will not be converted.\n']);
     else
         if isempty(bracket)
-            if ~isempty(find(StringText == '^' | StringText == '_' | StringText == '\' ))
-                returnvalue = ['<tspan>' singleLatex2svg(StringText, size) '</tspan>'];    
+            if any(StringText == '^' | StringText == '_' | StringText == '\' )
+                returnvalue = ['<tspan>' singleLatex2svg(StringText) '</tspan>'];    
                 % Clean up empty tspan elements
                 % More could be done here, but with huge effort to make it
                 % match all special cases.
                 returnvalue = strrep(returnvalue, '></tspan><tspan>', '>');
             else
-                returnvalue = StringText;    
+                returnvalue = ['<tspan>' StringText '</tspan>'];
             end
         else
             returnvalue = '<tspan>';
             lastValidCharacter = 1;
-            localSize = size;
-            restoreOffset = [];
-            restoreSize = [];
             for i = 1:length(bracket)
                 lastValidCharacterOffset = 1;
                 if StringText(bracket(i)) == '{'
                     % Found '{'
                     removeCharacters = 1;
                     localOffset = 0;
-                    restoreOffset(bracketCounter(bracket(i))) = 0;
-                    restoreSize(bracketCounter(bracket(i))) = localSize;
                     if (bracket(i) > 1)
                         if StringText(bracket(i) - 1) == '_'
-                            localOffset = -0.4 * localSize;
-                            localSize = 0.7 * localSize;
-                            restoreOffset(bracketCounter(bracket(i))) = -localOffset;
+                            baselineShift = 'sub';
+                            localFontSize = '65%%';
+                            localOffset = -1;
                             removeCharacters = 2;
                         elseif StringText(bracket(i) - 1) == '^'
-                            localOffset = 0.5 * localSize;
-                            localSize = 0.7 * localSize;
-                            restoreOffset(bracketCounter(bracket(i))) = -localOffset;
+                            baselineShift = 'super';
+                            localFontSize = '65%%';
+                            localOffset = 1;
                             removeCharacters = 2;
                         end
                     end
-                    returnvalue = [returnvalue singleLatex2svg(StringText(lastValidCharacter:bracket(i) - removeCharacters), restoreSize(bracketCounter(bracket(i)))) '</tspan><tspan'];
+                    returnvalue = [returnvalue singleLatex2svg(StringText(lastValidCharacter:bracket(i) - removeCharacters)) '<tspan'];
                     if localOffset ~= 0
-                        returnvalue = [returnvalue ' dy="' num2str(-localOffset, '%0.1f') 'pt"'];
-                    end
-                    if localSize ~= restoreSize(bracketCounter(bracket(i)))
-                        returnvalue = [returnvalue ' font-size="' num2str(localSize, '%0.0f') 'pt"'];                        
+                        returnvalue = [returnvalue ' style="baseline-shift:' baselineShift ';font-size:' localFontSize '"'];                     
                     end
                     returnvalue = [returnvalue '>'];
                 else
                     % Found '}'
-                    returnvalue = [returnvalue singleLatex2svg(StringText(lastValidCharacter:bracket(i) - 1), localSize) '</tspan><tspan'];
-                    if restoreOffset(bracketCounter(bracket(i) - 1)) ~= 0
-                        returnvalue = [returnvalue ' dy="' num2str(-restoreOffset(bracketCounter(bracket(i) - 1)), '%0.1f') 'pt"'];
-                    end
-                    if restoreSize(bracketCounter(bracket(i) - 1)) ~= localSize
-                        localSize = restoreSize(bracketCounter(bracket(i) - 1));
-                        returnvalue = [returnvalue ' font-size="' num2str(localSize, '%0.0f') 'pt"'];
-                    end
-                    returnvalue = [returnvalue '>'];
+                    returnvalue = [returnvalue singleLatex2svg(StringText(lastValidCharacter:bracket(i) - 1)) '</tspan>'];
                 end
                 lastValidCharacter = bracket(i) + lastValidCharacterOffset;
             end
             if lastValidCharacter <= length(StringText)
-                returnvalue = [returnvalue singleLatex2svg(StringText(lastValidCharacter:end), localSize)];
+                returnvalue = [returnvalue singleLatex2svg(StringText(lastValidCharacter:end))];
             end
             returnvalue = [returnvalue '</tspan>'];
             % Clean up empty tspan elements
             % More could be done here, but with huge effort to make it
             % match all special cases.
             returnvalue = strrep(returnvalue, '></tspan><tspan>', '>');
+            returnvalue = strrep(returnvalue, '>>', '>');
         end
     end
 end
-catch
-    fprintf(['Warning: Error ''' lasterr ''' occurred during conversion. Latex string ''' StringText ''' will not be converted.\n']);
+catch ME
+    errStr = ME.identifier;
+    if isempty(errStr)
+        errStr = ME.message;
+    end
+    fprintf(['Warning: Error ''' errStr ''' occurred during conversion. Latex string ''' StringText ''' will not be converted.\n']);
 end
 
-function StringText = singleLatex2svg(StringText, size)
+function StringText = singleLatex2svg(StringText)
 index = find(StringText == '_' | StringText == '^');
 if ~isempty(index)
     if index(end) == length(StringText)
@@ -2869,20 +2969,16 @@ if ~isempty(index)
     end
     for i = length(index):-1:1
         if StringText(index(i)) == '_'
-            localOffset = 0.4 * size;
-            localSize = 0.7 * size;
             StringText = [StringText(1:index(i)-1) ...
-                    '</tspan><tspan dy="' num2str(localOffset, '%0.1f') 'pt" font-size="' num2str(localSize, '%0.0f') 'pt">' ...
+                    '<tspan style="baseline-shift:sub;font-size:65%%">' ...
                     StringText(index(i)+1) ...
-                    '</tspan><tspan dy="' num2str(-localOffset, '%0.1f') 'pt" font-size="' num2str(size, '%0.0f') 'pt">' ...
+                    '</tspan>' ...
                     StringText(index(i)+2:end)];
         else
-            localOffset = 0.5 * size;
-            localSize = 0.7 * size;
             StringText = [StringText(1:index(i)-1) ...
-                    '</tspan><tspan dy="' num2str(-localOffset, '%0.1f') 'pt" font-size="' num2str(localSize, '%0.0f') 'pt">' ...
+                    '<tspan style="baseline-shift:super;font-size:65%%">' ...
                     StringText(index(i)+1) ...
-                    '</tspan><tspan dy="' num2str(localOffset, '%0.1f') 'pt" font-size="' num2str(size, '%0.0f') 'pt">' ...
+                    '</tspan>' ...
                     StringText(index(i)+2:end)];
         end
     end
@@ -2913,17 +3009,21 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function rvalue = convertunit(value, from, to, parentheight)
+global PLOT2SVG_globals
 % From SVG 1.1. Specification:
 % "1pt" equals "1.25px" (and therefore 1.25 user units)
 % "1pc" equals "15px" (and therefore 15 user units)
 % "1mm" would be "3.543307px" (3.543307 user units)
 % "1cm" equals "35.43307px" (and therefore 35.43307 user units)
 % "1in" equals "90px" (and therefore 90 user units)
+% Modification by Jonathon Harding:
+% MATLAB however, assumes a variable number of pixels per inch, and
+% assuming that the pixels match is dangerous.
 if nargin < 4
     parentheight = 1.25;    % Default
 end
 switch lower(from)  % convert from input unit to points
-    case 'pixels', rvalue = value * 0.8;
+    case 'pixels', rvalue = value * 72/PLOT2SVG_globals.ScreenPixelsPerInch;
     case 'points', rvalue = value;
     case 'centimeters', rvalue = value / 2.54*72;
     case 'inches', rvalue = value * 72; % 72 points = 1 inch
@@ -3063,6 +3163,10 @@ xi = get(ax,'XLim');
 yi = get(ax,'YLim');
 zi = get(ax,'ZLim');
 projection.aspect_scaling = get(ax,'DataAspectRatio');
+[xinfi, yinfi, zinfi] = AxesChildBounds(ax);
+xi(isinf(xi)) = xinfi(isinf(xi));
+yi(isinf(yi)) = yinfi(isinf(yi));
+zi(isinf(zi)) = zinfi(isinf(zi));
 if strcmp(get(ax,'XScale'),'log')
     if strcmp(get(ax,'XLimMode'),'manual') && any(get(ax,'XLim') == 0)
         % Fix illegal scalings set by the user
@@ -3232,3 +3336,49 @@ q(m:m:end) = [];
 fvc = reshape(c, [cm*cn cp]);
 fva = reshape(a, [am*an ap]);
 f = [q q+m q+m+1 q+1];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Code by Jonathon Harding to detect axes child limits
+function [xlims, ylims, zlims] = AxesChildBounds(ax)
+    % Get all the direct children of the axes that are not also axes (i.e.
+    % old style legends)
+    children = findobj(ax, '-depth', 1, '-not', 'Type', 'axes');
+    % Now get all children of those objects that have data we can analyze
+    dataObjs = findobj(children, 'Type', 'line', ...
+        '-or', 'Type', 'patch', '-or', 'Type', 'Rectangle', '-or', 'Type', 'Surface');
+    % Generate default limits if no objects are found
+    xlims = [0 1];
+    ylims = [0 1];
+    zlims = [0 1];
+    if numel(dataObjs) == 0
+        return;
+    end
+    % Iterate through each axis one at a time
+    axisData = {'XData', 'YData', 'ZData'};
+    for i=1:numel(axisData)
+        % Set extreme bounds that will always be overridden
+        lims = [inf -inf];
+        for j=1:numel(dataObjs)
+            % For each object, get the data for the appropriate axis
+            data = reshape(get(dataObjs(j), axisData{i}), [], 1);
+            % Remove data that is not displayed
+            data(isinf(data) | isnan(data)) = [];
+            % If any data remains, update the limits
+            if ~isempty(data)
+                lims(1) = min(lims(1), min(data));
+                lims(2) = max(lims(2), max(data));
+            end
+        end
+        % If the limits are not infinite (i.e. no data found), then update
+        % the apropriate axis limits
+        if ~any(isinf(lims))
+            switch axisData{i}
+                case 'XData'
+                    xlims = lims;
+                case 'YData'
+                    ylims = lims;
+                case 'ZData'
+                    zlims = lims;
+            end
+        end
+    end
