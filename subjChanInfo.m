@@ -302,7 +302,7 @@ elseif strcmp(subj,'30')|| strcmp(subj,'RR')
 end
 rois.aIPS = [rois.amIPS, rois.latIPS];
 rois.CARChannels = setdiff(rois.surfaceChannels,[rois.badChannels,rois.noisyChannels,rois.refChannel]);
-rois.LPC = [rois.IPS rois.SPL rois.AG];
+rois.LPC = [rois.IPS rois.SPL rois.AG rois.TPJ rois.SMG];
 rois.other = setdiff(rois.goodChannels,rois.LPC);
 
 return

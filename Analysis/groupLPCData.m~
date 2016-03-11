@@ -115,8 +115,8 @@ if strcmp(opts.lockType,'RT')
 else
 data.validAnalysisSamples = ~(data.trialTime>dataIn.data.baseLine(1) ...
     & data.trialTime<dataIn.data.baseLine(2));
-end
 data.nValidAnalysisSamps = sum(data.validAnalysisSamples);
+end
 
 % bin info
 data.winSize        = 0.10; % in seconds
@@ -133,10 +133,8 @@ data.BinERP                 = cell(nSubjs,1);
 data.condOfInterest         = 13;
 data.meanChResp             = zeros(data.nChans,data.nTrialSamps);  
 data.tstatChResp            = zeros(data.nChans,data.nTrialSamps);  
-data.chRespScore            = zeros(data.nChans,1);
+data.chRespScore            = zeros(data.nChans);
 data.meanBinChResp          = zeros(data.nChans,data.nBins);  
-data.BinTstatChResp         = zeros(data.nChans,data.nBins);  
-data.BinChRespScore         = zeros(data.nChans,1);
 data.nTrialsInAnalysis      = zeros(nSubjs,1);
 data.dataToStudyRTsCorr     = zeros(data.nChans,data.nBins);
 data.dataToStudyRTsCorrP    = zeros(data.nChans,data.nBins);
@@ -167,12 +165,9 @@ for s = 1:nSubjs
         data.meanChResp(ch,:)   = mean(Z(trials,:));
         [~,~,~,t]=ttest(Z(trials,:));
         data.tstatChResp(ch,:) = t.tstat;
-        data.chRespScore(ch)   = norm(t.tstat(data.validAnalysisSamples),inf);        
+        data.chRespScore(ch)   = mean(abs(t.tstat(data.validAnalysisSamples)));        
         
         data.meanBinChResp(ch,:) =mean(data.BinERP{s}(Sch,trials,:));
-        [~,~,~,t]=ttest(data.BinERP{s}(Sch,trials,:));
-        data.BinTstatChResp(ch,:) = t.tstat;
-        data.BinChRespScore(ch)   = norm(squeeze(t.tstat),inf); 
         
         % compute relationship of data to RTs
         [data.dataToStudyRTsCorr(ch,:),data.dataToStudyRTsCorrP(ch,:)] = ...

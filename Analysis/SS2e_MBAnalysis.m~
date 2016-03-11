@@ -54,7 +54,7 @@ info.thr            = 1;
 x=colormap;
 cm = [x(1:32,:);ones(32,3);x(33:64,:)];
 colormap(cm);
-Zlims = [-3 3];        
+Zlims = [-4 4];        
 switch AnalysisNum
     % Plot ROIs level activity
     case 1
@@ -72,10 +72,9 @@ switch AnalysisNum
             X(~(abs(X)>info.thr))=0;
             info.fileName   = strcat(data.ROIs{rr},info.Analysis);
             %X(~(abs(X)>info.thr))=0;
-            axes('position',[0.1 0.1 0.8 0.8])
-            %axes('position',[0.1 0.1 0.6 0.6])
-            %contourf(time,freqs,X,[-inf -4 -3 -2 0 2 3 4 inf]);
-            contourf(time,freqs,X,[-10 -3 -2 0 2 3 10]);
+            %axes('position',[0.1 0.1 0.8 0.8])
+            axes('position',[0.1 0.1 0.6 0.6])
+            contourf(time,freqs,X,[-10 -4 -1.6 0 2 3 10]);
             hold on;
             plot([0 0],[1 6],'k','linewidth',4)
             set(gca,'fontsize',20,'ytickLabel',info.yticksLabels )
@@ -163,9 +162,12 @@ switch AnalysisNum
         end
         fileName = [lock 'StudyRTCorrClusterGroups'];
         renderChansSS2e(data.KMeansStudy.IDX,fileName)
-         
+        
+    
+    
     % recogntion RTs Cluster Correlations
-    case 5        
+    case 5
+        
         figure(1); clf;
         colormap(cm);
         set(gcf,'paperpositionmode','auto','color','white')
@@ -189,35 +191,35 @@ switch AnalysisNum
         end
         fileName = [lock 'TestsRTCorrClusterGroups'];
         renderChansSS2e(data.KMeansTest.IDX,fileName)
-    case 6
-        % recogntion RTs correlations ROIs
-        figure(1); clf;
-        colormap(cm);
-        set(gcf,'paperpositionmode','auto','color','white')
-        set(gcf,'position',[100,100,500,300]);
-        
-        info.Analysis   = ['_TVals'];
-        freqs = 1:6;
-        time  = mean(data.Bins,2);
-        Zlims = [-3 3];
-        for rr = 1:3
-            chans = data.ROIid==rr;
-            X = [];
-            for ba=freqs
-                [~,~,~,temp] = ttest(squeeze(data.dataToTestRTsCorr(ba,chans,:)));
-                X = [X;temp.tstat];
-            end
-            %X=squeeze(data.KMeansTest.TTests(rr,:,:));
-            X(~(abs(X)>info.thr))=0;
-            info.fileName   = strcat('TestRTCorrROIs',num2str(rr),info.Analysis);
-            axes('position',[0.1 0.1 0.8 0.8])
-            contourf(time,freqs,X,[-10 -3 -2 0 2 3 10]);
-            hold on;
-            plot([0 0],[1 6],'k','linewidth',4)
-            set(gca,'fontsize',20,'ytickLabel',info.yticksLabels )
-            set(gca,'cLim',Zlims)
-            print(gcf, '-dtiff','-r300', [info.savePath info.fileName])
-        end
+%     case 5
+%         % recogntion RTs correlations
+%         figure(1); clf;
+%         colormap(cm);
+%         set(gcf,'paperpositionmode','auto','color','white')
+%         set(gcf,'position',[100,100,500,300]);
+%         
+%         info.Analysis   = ['_TVals'];
+%         freqs = 1:6;
+%         time  = mean(data.Bins,2);
+%         Zlims = [-3 3];
+%         for rr = 1:3
+%             chans = data.ROIid==rr;
+%             X = [];
+%             for ba=freqs
+%                 [~,~,~,temp] = ttest(squeeze(data.dataToTestRTsCorr(ba,chans,:)));
+%                 X = [X;temp.tstat];
+%             end
+%             %X=squeeze(data.KMeansTest.TTests(rr,:,:));
+%             X(~(abs(X)>info.thr))=0;
+%             info.fileName   = strcat('TestRTCorrROIs',num2str(rr),info.Analysis);
+%             axes('position',[0.1 0.1 0.8 0.8])
+%             contourf(time,freqs,X,[-10 -3 -2 0 2 3 10]);
+%             hold on;
+%             plot([0 0],[1 6],'k','linewidth',4)
+%             set(gca,'fontsize',20,'ytickLabel',info.yticksLabels )
+%             set(gca,'cLim',Zlims)
+%             print(gcf, '-dtiff','-r300', [info.savePath info.fileName])
+%         end
 %         %fileName = 'TestsRTCorrClusterGroups';
 %         %renderChansSS2e(data.KMeansTest.IDX,fileName)
 %     case 6

@@ -13,9 +13,12 @@ for s = subjects;
 end
 
 %% re-reference
+
+% updated 2/25/16 to include SMG and TPJ as LPC regions in subjChanInfo  
 addpath PreProcessing/
 addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
+
 
 subjects = {'16b','17b','18','24','28','29','30'};
 reference = 'nonLPCCh'; nRefChans = 10; % using this nonLPC for now % 5/7/2014
@@ -162,10 +165,10 @@ addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
 subjects = {'16b','17b','18','24','28','29','30'};
-%reference = 'nonLPCch';
-reference = 'nLPClowEvokedVar';
+reference = 'nonLPCch';
+%reference = 'nLPClowEvokedVar';
 
-lockType     = {'preStim'}%{'preStim','stim','RT'};
+lockType     = {'preStim2','preStim','stim','RT'};
 
 analysisType = 'logPower';%{'Amp','Power', 'logPower'};
 baselineType = 'sub';%{'rel','sub'}
@@ -185,6 +188,7 @@ for s = subjects
                 dataIn.data.baseLineMeans = stimdata.data.baseLineMeans;
             end
             data = calcERSP(dataIn.data);
+
             if ~exist([dataPath s{1}  '/Spectral_Data/' band{1} '/'],'dir');
                 mkdir([dataPath s{1}  '/Spectral_Data/' band{1} '/']);
             end;
@@ -224,12 +228,12 @@ addpath Analysis/
 addpath lib/
 
 bands        = {'delta','theta','alpha','beta','lgam','hgam'};
-lockType     = {'preStim','stim','RT'};
+lockType     = {'preStim2','prestim','stim','RT'};
 
 opts                = [];
 opts.hems           = 'all';
-opts.reference      = 'nLPClowEvokedVar';
-%opts.reference      = 'nonLPCch';
+%opts.reference      = 'nLPClowEvokedVar';
+opts.reference      = 'nonLPCch';
 opts.subjects       = {'16b','17b','18','24','28','29','30'};
 opts.dataPath       = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
@@ -263,13 +267,13 @@ addpath Analysis/
 addpath lib/
 
 bands        = {'delta','theta','alpha','beta','lgam','hgam'};
-lockType     = {'preStim'}%,'stim'};%{'preStim','stim','RT'};
+lockType     = {'preStim2'};%,'preStim','stim','RT'};
 
 opts                = [];
 opts.hems           = 'all';
 opts.bands          = bands;
-opts.reference      = 'nLPClowEvokedVar';
-%opts.reference      = 'nonLPCch';
+%opts.reference      = 'nLPClowEvokedVar';
+opts.reference      = 'nonLPCch';
 opts.dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
 
 for lt = lockType
@@ -280,6 +284,36 @@ for lt = lockType
     fprintf('grouping data completed for %s\n',lt{1})    
 end
 
+%% Kmeans temporo-spectral analyses
+lockType     = {'preStim2'};%,'preStim','stim','RT'};
+analysis     = {'activity','studyRT','testRT'};
+
+opts = [];
+opts.TvalChanThr = 0; % # inclusion criteria for channels; zero includes all chans
+opts.IndepClustersFlag = 1; % if TRUE, clustering analyses are perform independenty for activity
+opts.reference      = 'nonLPCch';
+opts.dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
+
+for lt = lockType
+    for an = analysis
+    opts.lockType = lt{1};
+    opts.analysis = an{1};
+    extension = [opts.lockType 'sublogPower' opts.reference];
+    fileName =  ['allMBAnalysis' data.extension];
+    
+    load([opts.dataPath fileName '.mat'])
+    out = kmeansAnalyses(data,opts);
+    
+     -> save out
+     -> 
+    end
+end 
+
+%% lasso and ridge analysis
+->
+->
+
+%%
 %%  Plot Correlation time-courses per band and ROI
 
 addpath Analysis/

@@ -6,6 +6,9 @@ switch  data.lockType
     case 'preStim'
         data.trialDur = [-1 1]; dur = data.trialDur;
         data.baseLine = [-1 1];
+    case 'preStim2'
+        data.trialDur = [-1.5 1.5]; dur = data.trialDur;
+        data.baseLine = [-1.2 -1];
     case 'stim'
         data.trialDur = [-0.2 1.5]; dur = data.trialDur;
         data.baseLine = [-0.2 0];
@@ -18,7 +21,7 @@ data.nTrials        = numel(data.trialOnsets);
 epochDur = [-2 2]; % before converting into trials and baseline correcting
 
 % add behavioral data
-data.behavior = data.behavorInfo; % hack... fix 5/7/14
+data.behavior = data.behavorInfo; % 
 
 % store the corresponding roi channel ids in data struct.
 data.rois       = data.chanInfo;
@@ -38,11 +41,11 @@ nEvents = numel(evOnsets);
 epSamps = floor(epochTime*data.SR);
 evIdx = zeros(nEvents,nEpSamps);
 
-switch  data.lockType
-    case {'stim','preStim'}
-        offset = zeros(nEvents,1);
+switch  data.lockType    
     case 'RT'
         offset = floor(data.behavior.studyRTs*data.SR);
+    otherwise
+        offset = zeros(nEvents,1);
 end
 
 for ev = 1:nEvents

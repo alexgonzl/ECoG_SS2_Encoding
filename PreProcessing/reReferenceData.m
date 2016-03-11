@@ -8,6 +8,8 @@ function data=reReferenceData(data, reReference, nRefChans, CARch)
 
 data.reReferencing = reReference; %{'allChCAR','LPCChCAR','origCAR'}
 %% rereference channels and save
+
+data.chanInfo = subjChanInfo(data.subjNum);
 refChan = data.chanInfo.refChannel; data.refChan = refChan;
 
 % common averagening
