@@ -291,21 +291,21 @@ analysis     = {'activity','studyRT','testRT'};
 opts = [];
 opts.TvalChanThr = 0; % # inclusion criteria for channels; zero includes all chans
 opts.IndepClustersFlag = 1; % if TRUE, clustering analyses are perform independenty for activity
+opts.numClusters    = 3; % K opa
 opts.reference      = 'nonLPCch';
 opts.dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
 
 for lt = lockType
     for an = analysis
-    opts.lockType = lt{1};
-    opts.analysis = an{1};
-    extension = [opts.lockType 'sublogPower' opts.reference];
-    fileName =  ['allMBAnalysis' data.extension];
+        opts.lockType = lt{1};
+        opts.analysis = an{1};
+        extension = [opts.lockType 'sublogPower' opts.reference];
+        fileName =  ['allMBAnalysis' extension];
     
-    load([opts.dataPath fileName '.mat'])
-    out = kmeansAnalyses(data,opts);
+        load([opts.dataPath fileName '.mat'])
+        out = kmeansAnalyses(data,opts);
     
-     -> save out
-     -> 
+        save([opts.datapath 'Kmeans/' opts.lockType '_' opts.analysis 'Tthr' num2str() 'Kmeans' num2str(opts.num 'MultiBand' extension '.mat'])     
     end
 end 
 

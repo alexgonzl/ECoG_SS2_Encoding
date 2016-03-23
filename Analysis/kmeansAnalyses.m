@@ -11,10 +11,22 @@ function out = kmeansAnalyses(data,opts)
 
 %% 
 % select channels based on criterion
-channels = 
+channels = sum(data.BinChRespScore>opts.opts.TvalChanThr)>1;
 
+switch opts.analysis
+    case 'activity'
+        X = permute(data.BinERPsAvg,[2 1 3]);        
+    case 'studyRT'
+        X=permute(data.dataToStudyRTsCorr,[2 1 3]);
+    case 'testRT'
+        X=permute(data.dataToTestRTsCorr,[2 1 3]);
+
+end
+X = X(channels,:,:);
+
+%%
 % Get K-Means for activity
-X = permute(data.BinERPsAvg,[2 1 3]);
+
 data.KMeansERA.K = 3;
 [data.KMeansERA.IDX, data.KMeansERA.C, data.KMeansERA.SUMD, data.KMeansERA.D]  = kmeans(X(:,:), data.KMeansERA.K,'replicates',100,'distance','correlation');
 data.KMeansERA.ReshapeC = zeros(data.KMeansERA.K,data.nBands,data.nBins);
@@ -50,7 +62,7 @@ end
 
 %%
 % Get K-Means fot studyCorrs
-X=permute(data.dataToStudyRTsCorr,[2 1 3]);
+
 data.KMeansStudy.K = 3;
 [data.KMeansStudy.IDX, data.KMeansStudy.C, data.KMeansStudy.SUMD, data.KMeansStudy.D] ...
     = kmeans(X(:,:), data.KMeansStudy.K,'replicates',100,'distance','correlation');
