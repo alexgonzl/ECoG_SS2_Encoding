@@ -289,23 +289,26 @@ lockType     = {'preStim2'};%,'preStim','stim','RT'};
 analysis     = {'activity','studyRT','testRT'};
 
 opts = [];
-opts.TvalChanThr = 0; % # inclusion criteria for channels; zero includes all chans
-opts.IndepClustersFlag = 1; % if TRUE, clustering analyses are perform independenty for activity
+opts.TvalChanThr    = 3; % # inclusion criteria for channels; zero includes all chans
 opts.numClusters    = 3; % K opa
+opts.replicates     = 100;
 opts.reference      = 'nonLPCch';
 opts.dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
 
 for lt = lockType
     for an = analysis
         opts.lockType = lt{1};
-        opts.analysis = an{1};
+        opts.analysis = an{1};        
         extension = [opts.lockType 'sublogPower' opts.reference];
         fileName =  ['allMBAnalysis' extension];
     
         load([opts.dataPath fileName '.mat'])
+        opts.chans  = sum(data.chBinScore>opts.TvalChanThr)>1;
         out = kmeansAnalyses(data,opts);
     
-        save([opts.datapath 'Kmeans/' opts.lockType '_' opts.analysis 'Tthr' num2str() 'Kmeans' num2str(opts.num 'MultiBand' extension '.mat'])     
+        save([opts.dataPath 'Kmeans/' opts.lockType '_' opts.analysis '_Tthr' ...
+            strrep(num2str(opts.TvalChanThr),'.','p') '_Kmeans' num2str(opts.numClusters)...
+            'MultiBand' extension '.mat'],'out')     
     end
 end 
 

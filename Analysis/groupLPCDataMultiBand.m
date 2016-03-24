@@ -19,17 +19,15 @@ end
 data.conds = bandDat.data.conds;
 data.nBands = numel(bands);
 
-% add T-test to avg
-% add channel score
-data.BinERPs = cell(nSubjs,1);
-data.BinERPsAvg             = zeros(data.nBands,data.nChans,data.nBins); 
-data.BinTStatAvg            = zeros(data.nBands,data.nChans,data.nBins); 
-data.BinChRespScore         = zeros(data.nBands,data.nChans);
+data.BinERPs                = cell(nSubjs,1);
+data.mBinChResp             = zeros(data.nBands,data.nChans,data.nBins); 
+data.tBinChResp             = zeros(data.nBands,data.nChans,data.nBins); 
+data.chBinScore             = zeros(data.nBands,data.nChans);
 data.dataToStudyRTsCorr     = zeros(data.nBands,data.nChans,data.nBins);
 data.dataToStudyRTsCorrP    = zeros(data.nBands,data.nChans,data.nBins);
 data.dataToTestRTsCorr      = zeros(data.nBands,data.nChans,data.nBins);
 data.dataToTestRTsCorrP     = zeros(data.nBands,data.nChans,data.nBins);
-
+data.AnalysisBins           = bandDat.data.AnalysisBins;
 
 for ba = 1:data.nBands
     fileName    = [opts.hems 'ERSPs' bands{ba} 'Group' extension];
@@ -39,24 +37,24 @@ for ba = 1:data.nBands
         data.trials{ss} = trials;
         data.BinERPs{ss} = [data.BinERPs{ss} permute(bandDat.data.BinERP{ss}(:,trials,:),[2 1 3])];                
     end
-    data.BinERPsAvg(ba,:,:)         = bandDat.data.meanBinChResp;           
-    data.BinTStatAvg(ba,:,:)        = bandDat.data.BinTstatChResp;           
-    data.BinChRespScore(ba,:)       = bandDat.data.BinChRespScore;           
-    data.dataToStudyRTsCorr(ba,:,:) = bandDat.data.dataToStudyRTsCorr;
-    data.dataToStudyRTsCorrP(ba,:,:) = bandDat.data.dataToStudyRTsCorrP;
-    data.dataToTestRTsCorr(ba,:,:)  = bandDat.data.dataToTestRTsCorr;
-    data.dataToTestRTsCorrP(ba,:,:) = bandDat.data.dataToTestRTsCorrP;
+    data.mBinChResp(ba,:,:)             = bandDat.data.mBinChResp;           
+    data.tBinChResp(ba,:,:)             = bandDat.data.tBinChResp;           
+    data.chBinScore(ba,:)               = bandDat.data.chBinScore;           
+    data.dataToStudyRTsCorr(ba,:,:)     = bandDat.data.dataToStudyRTsCorr;
+    data.dataToStudyRTsCorrP(ba,:,:)    = bandDat.data.dataToStudyRTsCorrP;
+    data.dataToTestRTsCorr(ba,:,:)      = bandDat.data.dataToTestRTsCorr;
+    data.dataToTestRTsCorrP(ba,:,:)     = bandDat.data.dataToTestRTsCorrP;
 end
 
-data.BinROIMeans  = zeros(3,data.nBands,data.nBins);
-data.BinROITTests = zeros(3,data.nBands,data.nBins);
+data.mBinROI_tChResp  = zeros(3,data.nBands,data.nBins);
+data.tBinROI_tChResp  = zeros(3,data.nBands,data.nBins);
 for rr = 1:3
     chans = data.ROIid==rr;
     for ba= 1:data.nBands
-        temp=squeeze(data.BinERPsAvg(ba,chans,:));
-        data.BinROIMeans(rr,ba,:)=mean(temp);
+        temp=squeeze(data.tBinChResp(ba,chans,:));
+        data.mBinROI_tChResp(rr,ba,:)=mean(temp);
         [~,~,~,t] = ttest(temp);
-        data.BinROITTests(rr,ba,:)=t.tstat;
+        data.tBinROI_tChResp(rr,ba,:)=t.tstat;
     end
 end
 

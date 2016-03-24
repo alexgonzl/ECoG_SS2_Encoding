@@ -43,7 +43,7 @@ data.LPCchanId      = [];
 data.hemChan        = [];
 data.ROIid          = []; data.ROIs = {'IPS','SPL','AG','TPJ','SMG'};
 data.subROIid       = []; data.subROIs = {'pIPS','aIPS','pSPL','aSPL'};
-data.RTquantiles    = [0.1:0.1:0.9]; % quanntiles for analysis
+data.RTquantiles    = 0.1:0.1:0.9; % quanntiles for analysis
 
 data.condNames      = {'abstract','concrete','absResp','conResp',...
     'oldResp','newResp', 'Rem','Forg', 'correctSemantic', 'correctStudyTest',...
@@ -105,39 +105,50 @@ end
 
 % trial time info
 data.baselineType   = dataIn.data.baselineType;
+data.baseLine       = dataIn.data.baseLine;
 data.SR             = dataIn.data.SR;
 data.nTrialSamps    =numel(dataIn.data.trialTime);
 data.trialDur       = dataIn.data.trialDur;
 data.trialTime      = linspace(data.trialDur(1),data.trialDur(2),data.nTrialSamps);
+% bin info
+data.winSize                = 0.10; % in seconds
+data.sldWin                 = data.winSize;
+% all bins
+[data.BinSamps , data.Bins] = getBinSamps(data.winSize,data.sldWin,data.trialTime);
+data.nBins                  = size(data.Bins,1);
 
-if strcmp(opts.lockType,'RT')
-    data.validAnalysisSamples = ones(size(data.trialTime));
+% Get samples to be used in analyses. Excludes baseline period.
+% RT-locked data has baseline outside the epochs. preStim has no baseline.
+% other cases should include the samples greater than the last sample
+% included in the baseline
+if any(strcmp(opts.lockType,{'RT','preStim'}))
+    data.validAnalysisSamples = true(size(data.trialTime));
+    % analysis bins
+    data.AnalysisBins = true(size(data.Bins(:,2),1),1);
 else
-data.validAnalysisSamples = ~(data.trialTime>dataIn.data.baseLine(1) ...
-    & data.trialTime<dataIn.data.baseLine(2));
+    data.validAnalysisSamples = data.trialTime>dataIn.data.baseLine(2);   
+    data.AnalysisBins         = data.Bins(:,2)>=dataIn.data.baseLine(2);
 end
 data.nValidAnalysisSamps = sum(data.validAnalysisSamples);
 
-% bin info
-data.winSize        = 0.10; % in seconds
-data.sldWin         = data.winSize;
-[data.BinSamps , data.Bins] = getBinSamps(data.winSize,data.sldWin,data.trialTime);
-data.nBins          = size(data.Bins,1);
-
+% number of channels
 data.nChans                 = sum(data.nSubjLPCchans);
 
+% Pre-allocations
 data.BinERP                 = cell(nSubjs,1);
 
 % all these correspond to the condition of interest: #13: valid encoding
-% trial that was remembered.
+% trial that were remembered.
 data.condOfInterest         = 13;
-data.meanChResp             = zeros(data.nChans,data.nTrialSamps);  
-data.tstatChResp            = zeros(data.nChans,data.nTrialSamps);  
-data.chRespScore            = zeros(data.nChans,1);
-data.meanBinChResp          = zeros(data.nChans,data.nBins);  
-data.BinTstatChResp         = zeros(data.nChans,data.nBins);  
-data.BinChRespScore         = zeros(data.nChans,1);
+data.mChResp                = zeros(data.nChans,data.nTrialSamps);  
+data.tChResp                = zeros(data.nChans,data.nTrialSamps);
+data.chScore                = zeros(data.nChans,1); % for valid samples
+data.mBinChResp             = zeros(data.nChans,data.nBins);  
+data.tBinChResp             = zeros(data.nChans,data.nBins);  
+data.chBinScore             = zeros(data.nChans,1);
+
 data.nTrialsInAnalysis      = zeros(nSubjs,1);
+data.trialsInAnalysis       = cell(nSubjs,1);
 data.dataToStudyRTsCorr     = zeros(data.nChans,data.nBins);
 data.dataToStudyRTsCorrP    = zeros(data.nChans,data.nBins);
 data.dataToTestRTsCorr      = zeros(data.nChans,data.nBins);
@@ -163,16 +174,18 @@ for s = 1:nSubjs
         Z       = squeeze(data.ERP{s}(Sch,:,:));
         data.BinERP{s}(Sch,:,:) = binTrials(Z,data.BinSamps);
         
-        % only for trials of interest
-        data.meanChResp(ch,:)   = mean(Z(trials,:));
+        % summaries only for trials of interest
+        % Continous data        
+        data.mChResp(ch,:)   = mean(Z(trials,:));
         [~,~,~,t]=ttest(Z(trials,:));
-        data.tstatChResp(ch,:) = t.tstat;
-        data.chRespScore(ch)   = norm(t.tstat(data.validAnalysisSamples),inf);        
+        data.tChResp(ch,:) = t.tstat;
+        data.chScore(ch)   = norm(t.tstat(data.validAnalysisSamples),inf);        
         
-        data.meanBinChResp(ch,:) =mean(data.BinERP{s}(Sch,trials,:));
+        % Bin data
+        data.mBinChResp(ch,:) =mean(data.BinERP{s}(Sch,trials,:));
         [~,~,~,t]=ttest(data.BinERP{s}(Sch,trials,:));
-        data.BinTstatChResp(ch,:) = t.tstat;
-        data.BinChRespScore(ch)   = norm(squeeze(t.tstat),inf); 
+        data.tBinChResp(ch,:) = t.tstat;
+        data.chBinScore(ch)   = norm(squeeze(t.tstat(data.AnalysisBins)),inf); 
         
         % compute relationship of data to RTs
         [data.dataToStudyRTsCorr(ch,:),data.dataToStudyRTsCorrP(ch,:)] = ...
