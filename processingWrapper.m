@@ -285,6 +285,10 @@ for lt = lockType
 end
 
 %% Kmeans temporo-spectral analyses
+
+addpath Analysis
+addpath lib
+
 lockType     = {'preStim2'};%,'preStim','stim','RT'};
 analysis     = {'activity','studyRT','testRT'};
 

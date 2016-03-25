@@ -1,18 +1,35 @@
 function out = kmeansAnalyses(data,opts)
-% function that uses KMeans to find electrods shtat match thei spectro-temporal patterns.
+% function that uses KMeans to find electrodes that match in their spectro-temporal patterns
 % note that this is working at the T mean channel level. 
 % possible alternative approaches:
-% 1) work at the mean channel activity level 
-% 2) pre-select channels based on some criteria (like overall channel activity through trials/time/frequency)
-% 3) do independent groupings of channels per analysis; or carry the same groupings into the rest of the analyses
-% 4) somehow sample trials and create a distribution of channel groupings. 
 %
-% data must be the output of groupLPC data
-
-%% 
-% select channels based on criterion
+% data must be the output of groupLPCDataMultiBand()
+%	depending on analysis the input will change, however they should 
+% 	have the following formatting:
+% 	bands X channels X bins
+%	
+%	other required inputs:
+% 	AnalysisBins-> this input, subselects time bins for the analysis.
+%	
+% required inputs in opts:
+% 	chans -> vector of channels to be grouped.
+%	analysis 
+%		-> 'activity', clusters based on the amplitude of the signals
+%		-> 'studyRT',  clusters based on the correlation of amplitude
+%						and encoding reaction time
+% 		-> 'testRT', 	clusters based on the correlation of 
+% 					amplitude and retrieval reaction time 
+% 	numClusters -> number of clusters for the kmeans analysis
+% 	replicates  -> number of replications for the analysis
+%
+% Alex G. 
+% Last updated 3/23/16
+% 
+%% 	
 out = [];
 out.opts  = opts;
+
+% select channels based on criterion
 out.chans = find(opts.chans);
 out.bins  = data.AnalysisBins;
 out.nBins = sum(out.bins);
