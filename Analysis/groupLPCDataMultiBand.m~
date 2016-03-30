@@ -77,16 +77,15 @@ for ss=1:nSubjs
     data.PCAtrialDecomp.Comps{ss} = zeros(d1,d2,nComps);
     data.PCAtrialDecomp.Projections{ss} = zeros(d1,d3,nComps);
     
-    subjChans = find(data.subjChans==ss);
     for c=1:d1
         xx = squeeze(x(c,:,:));
         [C,S,E]= ppca(xx',nComps);  
-        data.PCAtrialDecomp.Comps{ss}(c,:,:) = C;
-        data.PCAtrialDecomp.Projections{ss}(c,:,:) = S;
-        data.PCAtrialDecomp.VarExp(subjChans(c),:) = E;
+        data.PCAtrialDecomp.Comps{ss} = C;
+        data.PCAtrialDecomp.Projections{ss} = S;
+        data.PCAtrialDecomp.VarExp(data.subjChans==ss,:) = E;
         
-        data.PCAtrialDecomp.CorrStudyRTs(subjChans(c),:) = corr(C,rts1);
-        data.PCAtrialDecomp.CorrTestRTs(subjChans(c),:)  = corr(C,rts2);
+        data.PCAtrialDecomp.CorrStudyRTs(data.subjChans==ss,:) = corr(C,rts1);
+        data.PCAtrialDecomp.CorrTestRTs(data.subjChans==ss,:)  = corr(C,rts2);
 
     end
 end

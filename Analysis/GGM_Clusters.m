@@ -1,3 +1,4 @@
+
 X = permute(data.BinTStatAvg,[2 1 3]);
 Y = X(:,:);
 
