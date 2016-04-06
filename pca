@@ -1,0 +1,13 @@
+analysis of correlations of pca components:
+PCCAtrialDecomp.CorrStudyRTs<=thr,2)
+
+-> select maximum and min correlations per channel. if channel doesn't have a positive or negative correlation it is excluded from analysis
+	[~,ids] = max(data.PCAtrialDecomp.CorrStudyRTs,[],2)
+	[~,ids] = min(data.PCAtrialDecomp.CorrStudyRTs,[],2)
+
+
+
+
+
+
+
