@@ -121,6 +121,14 @@ switch subj
             S.blocklist = {'JT2_09', 'JT2_11', 'JT2_13', 'JT2_15'};      
             S.badtrials = [4 23 34 44 76 77 91 2 3 6 93 144];
         end
+
+    case {'32','RR'}
+        S.subjNum = '32';
+        S.subjName = 'RR';
+        if strcmp(expt,'SS2')
+            S.blocklist = {''};      
+            S.badtrials = [];
+        end        
     otherwise
         error('subject not found.')
 end

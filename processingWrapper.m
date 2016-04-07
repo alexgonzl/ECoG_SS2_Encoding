@@ -280,9 +280,34 @@ for lt = lockType
     opts.lockType       = lt{1};
     data        = groupLPCDataMultiBand(opts);        
     fileName   = [opts.hems 'MBAnalysis' data.extension];
-    save([opts.dataPath fileName '.mat'],'data')
+    save([opts.dataPath opts.lockType '/' fileName '.mat'],'data')
     fprintf('grouping data completed for %s\n',lt{1})    
 end
+
+%% PCA trial analysis
+addpath Analysis/
+addpath lib/
+
+lockType     = {'preStim2'};
+
+opts                = [];
+opts.hems           = 'all';
+opts.nComps         = 12;
+opts.reference      = 'nonLPCch';
+opts.dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
+for lt = lockType
+    opts.lockType       = lt{1};
+    extension           = [opts.lockType 'sublogPower' opts.reference];
+    fileName            = [opts.hems 'MBAnalysis' extension];
+    load([opts.dataPath fileName '.mat'])
+    
+    out     = PCATrialDecomp(data,opts);
+    
+    fileName            = ['PCATrialDecomp-MBAnalysis' extension]; 
+    save([opts.dataPath opts.lockType '/' fileName '.mat'],'out')
+    fprintf('PCA trial decomp completed for %s\n',lt{1})    
+end
+
 
 %% Kmeans temporo-spectral analyses
 
