@@ -66,7 +66,8 @@ data.PCAtrialDecomp.Projections     = cell(nSubjs,1);
 data.PCAtrialDecomp.VarExp          = zeros(data.nChans,nComps);
 data.PCAtrialDecomp.CorrStudyRTs    = zeros(data.nChans,nComps);
 data.PCAtrialDecomp.CorrTestRTs     = zeros(data.nChans,nComps);
-
+data.PCAtrialDecomp.StudyGLMs       = cell(data.nChans,1);
+data.PCAtrialDecomp.TestGLMs        = cell(data.nChans,1);
 for ss=1:nSubjs
     x = permute(data.BinERPs{ss}(:,:,:,data.AnalysisBins),[2 3 1 4]);
     x = x(:,:,:);
@@ -85,8 +86,10 @@ for ss=1:nSubjs
         data.PCAtrialDecomp.Projections{ss}(c,:,:) = S;
         data.PCAtrialDecomp.VarExp(subjChans(c),:) = E;
         
-        data.PCAtrialDecomp.CorrStudyRTs(subjChans(c),:) = corr(C,rts1);
+        data.PCAtrialDecomp.CorrStudyRTs(subjChans(c),:) = corr(C,atanh(rts1));
+        data.PCAtrialDecomp.StudyGLMs{subjChans(c)} = fitglm(C,atan(rts1));
         data.PCAtrialDecomp.CorrTestRTs(subjChans(c),:)  = corr(C,rts2);
+        data.PCAtrialDecomp.TestGLMs{subjChans(c)} = fitglm(C,atan(rts2));
 
     end
 end
