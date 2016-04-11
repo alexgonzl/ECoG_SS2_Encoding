@@ -1,9 +1,11 @@
 % SS2e Analyze Behavior
 
 behavPerf = [];
+addpath ~/Documents/ECOG_Mem_Encoding/lib/
+
 %behavPerf.subjects      = {'SRb','MD','LK','NC','RR','RHb','JT2'};
 behavPerf.subjects      = {'16b','17b','18','24','28','29','30'};
-behavPerf.dataPath      = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
+behavPerf.dataPath      = '~/Google Drive/Research/ECoG_SS2e/Behavior/';
 nItemsPerBlock = 20;
 
 preAlloc              = {'condID','sRespID','tRespID','blockID','subjID','studyRTs','testRTs'};
@@ -13,8 +15,8 @@ end
 
 nSubjs = numel(behavPerf.subjects);
 for ss = 1:nSubjs
-    behavDataPath = [behavPerf.dataPath behavPerf.subjects{ss} '/BehavResults/'];
-    load([behavDataPath 'behavResults.mat']);
+    behavDataPath = [behavPerf.dataPath behavPerf.subjects{ss}];
+    load([behavDataPath '/behavResults.mat']);
     
     
     conds   = unique(S.cond);
@@ -52,6 +54,7 @@ behavPerf.testRTCondDiff        = getTwoSampStats(behavPerf.testRTs(behavPerf.co
 
 %% Plot the results by subject.
 inkscapePath='/Applications/Inkscape.app/Contents/Resources/bin/inkscape';
+fP = '~/Google Drive/Research/ECoG_SS2e/Plots/Behavior/';
 
 nSubjs=7;
 AC = zeros(nSubjs,1);
@@ -123,7 +126,6 @@ text(0.5,-.4,sprintf(' M = %0.2f',mean(RTsCorr)),'fontsize',20,'horizontalalignm
 
 
 fN = 'encodingPerfScatter';
-fP = '~/Google Drive/Research/ECoG_SS2e/';
 cPath = pwd;
 cd(fP)
 addpath(cPath)
@@ -168,7 +170,6 @@ text(0.5,0.2,sprintf(' M = %0.2fs',mean(RTe)),'fontsize',20,'horizontalalignment
 
 
 fN = 'encodingPerfScatter_1';
-fP = '~/Google Drive/Research/ECoG_SS2e/';
 cPath = pwd;
 cd(fP)
 addpath(cPath)
@@ -207,10 +208,7 @@ set(gca,'fontsize',20,'xtick',[],'ytick',[-0.5 0 0.5],'linewidth',2);
 xlabel(' enc-ret (r) ')
 text(0.5,-.4,sprintf(' M = %0.2f',mean(RTsCorr)),'fontsize',20,'horizontalalignment','center')
 
-
-
 fN = 'encodingPerfScatter_2';
-fP = '~/Google Drive/Research/ECoG_SS2e/';
 cPath = pwd;
 cd(fP)
 addpath(cPath)
