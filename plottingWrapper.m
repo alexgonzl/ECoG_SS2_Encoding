@@ -1,7 +1,17 @@
-%Figures
+function  plottingWrapper(figNum)
+% plots for ECoG_SS2enconding. 
 
-% First set. 
-% Behavioral:
+addpath ~/Documents/ECOG_Mem_Encoding/lib/
+addpath ~/Documents/ECOG_Mem_Encoding/Analysis/
 
+switch figNum
+	case 1
+	% I. Behavioral
+	behavPlots();
+	case 2
+	% II. Activity Plots
+	
 
-%%
+	otherwise
+		error('figure has not been implemented.')
+end
