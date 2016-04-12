@@ -10,7 +10,8 @@ switch figNum
 	behavPlots();
 	case 2
 	% II. Activity Plots
-	
+	% ROI Encoding Activity 
+	SS2e_MBAnalysis('preStim2',1)
 
 	otherwise
 		error('figure has not been implemented.')

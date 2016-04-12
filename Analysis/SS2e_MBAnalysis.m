@@ -1,7 +1,6 @@
 % Analysis Code for SS2 encoding data
 %
 % Analyses codes:
-
 function SS2e_MBAnalysis(lock,AnalysisNum)
 inkscapePath='/Applications/Inkscape.app/Contents/Resources/bin/inkscape';
 
@@ -35,21 +34,28 @@ info.savePath   = '/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/Resu
 info.groupNames = {'IPS','SPL','AG'};
 
 info.Bins       = data.Bins;
-info.alpha      = 0.05/15;
-info.toi        = [0 1.5];
 %info.yLimits    = [-1 1.6];
 %info.yLimits    = [-4 2];
 if strcmp(lock,'stim')
     info.xtick      = [0 0.4 0.8 1.2];
-    info.xticklabel = {'stim','0.4','0.8','1.2'};
+    info.toi        = [0 1.5];
+    info.alpha      = 0.05/15;
+    info.xticklabel = {'stim','0.4','0.8','1.2'};    
 elseif strcmp(lock,'RT')
     info.yAxisRightLoc = 1;
     info.xtick      = [-0.8 -0.4 0 0.4];
     info.xticklabel = {'-0.8','-0.4','resp','0.4'};
+elseif strcmp(lock, 'preStim2')
+    info.xtick      = [-1 0.5 0 0.5 1.5];
+    info.toi        = [-1 1.5];
+    info.alpha      = 0.05/26;
+    info.xticklabel = {'-1','-0.5','stim','0.5','1'};        
 end
+
 info.cols            = 'oc';
 info.yticksLabels    = {'\delta','\theta','\alpha','\beta','l-\gamma','h-\gamma'};
 info.thr            = 1;
+
 % Analysis 1
 x=colormap;
 cm = [x(1:32,:);ones(32,3);x(33:64,:)];
