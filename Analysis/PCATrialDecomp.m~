@@ -45,7 +45,7 @@ for ss=1:out.nSubjs
     rts2 = data.testRTs{ss}(data.trials{ss});
 
     out.Comps{ss} = zeros(d1,d2,out.nComps);
-
+    out.Projections(subj) = zeros(d1,d3,out.nComps);
         
     % for subject channels
     for c=1:d1
@@ -55,7 +55,7 @@ for ss=1:out.nSubjs
         % PCA
         [C,S,E]= ppca(xx',out.nComps);  
         out.Comps{ss}(c,:,:) = C;
-        out.Projections(subjChans(c),:,:) = S;
+        out.Projections{ss}(c,:,:) = S;
         out.VarExp(subjChans(c),:) = E;
         
         % Correlations

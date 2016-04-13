@@ -8,7 +8,7 @@ switch  data.lockType
         data.baseLine = [-1 1];
     case 'preStim2'
         data.trialDur = [-1.5 1.5]; dur = data.trialDur;
-        data.baseLine = [-1.2 -1];
+        data.baseLine = [-1.5 -1];
     case 'stim'
         data.trialDur = [-0.2 1.5]; dur = data.trialDur;
         data.baseLine = [-0.2 0];

@@ -7,7 +7,7 @@ addpath PreProcessing/
 addpath lib/
 addpath behavior/
 
-subjects = {'16b','17b','18','24','28','29','30'};
+subjects = {'19'}%{'16b','17b','18','24','28','29','30'};
 for s = subjects;
     preProcessRawData(s{1})
 end
@@ -168,7 +168,7 @@ subjects = {'16b','17b','18','24','28','29','30'};
 reference = 'nonLPCch';
 %reference = 'nLPClowEvokedVar';
 
-lockType     = {'preStim2','preStim','stim','RT'};
+lockType     = {'preStim2'}%{'preStim2','preStim','stim','RT'};
 
 analysisType = 'logPower';%{'Amp','Power', 'logPower'};
 baselineType = 'sub';%{'rel','sub'}
@@ -228,7 +228,8 @@ addpath Analysis/
 addpath lib/
 
 bands        = {'delta','theta','alpha','beta','lgam','hgam'};
-lockType     = {'preStim2','prestim','stim','RT'};
+lockType     = {'preStim2'}%,'prestim','stim','RT'};
+%lockType     = {'RT'};
 
 opts                = [];
 opts.hems           = 'all';
@@ -249,10 +250,10 @@ for lt = lockType
             savePath2 = '~/Google Drive/Research/ECoG_SS2e/data_results/';
         else
             savePath = [opts.dataPath 'group/Spectral_Data/'];
-            savePath2 = '~/Google Drive/Research/ECoG_SS2e/data_results/';
+            savePath2 = ['~/Google Drive/Research/ECoG_SS2e/data_results/' opts.lockType '/'];
         end
         
-        if ~exist(savePath,'dir'); mkdir(savePath); end;
+        if ~exist(savePath2,'dir'); mkdir(savePath2); end;
         
         save([savePath fileName '.mat'],'data')
         save([savePath2 fileName '.mat'],'data')
@@ -267,28 +268,60 @@ addpath Analysis/
 addpath lib/
 
 bands        = {'delta','theta','alpha','beta','lgam','hgam'};
-lockType     = {'preStim2'};%,'preStim','stim','RT'};
-
+lockType     = {'preStim2','preStim','stim','RT'};
+%lockType     = {'RT'};
 opts                = [];
 opts.hems           = 'all';
 opts.bands          = bands;
 %opts.reference      = 'nLPClowEvokedVar';
 opts.reference      = 'nonLPCch';
-opts.dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
 
 for lt = lockType
     opts.lockType       = lt{1};
+    opts.dataPath       = ['~/Google Drive/Research/ECoG_SS2e/data_results/' opts.lockType '/'];
     data        = groupLPCDataMultiBand(opts);        
     fileName   = [opts.hems 'MBAnalysis' data.extension];
-    save([opts.dataPath opts.lockType '/' fileName '.mat'],'data')
+    save([opts.dataPath fileName '.mat'],'data')
     fprintf('grouping data completed for %s\n',lt{1})    
 end
+%% Kmeans temporo-spectral analyses
 
+addpath Analysis
+addpath lib
+
+lockType     = {'preStim2','preStim','stim','RT'};
+%analysis     = {'activity','studyRT','testRT'};
+analysis     = {'activity'};
+
+opts = [];
+opts.TvalChanThr    = 0; % # inclusion criteria for channels; zero includes all chans
+opts.numClusters    = 3; % K opa
+opts.replicates     = 100;
+opts.reference      = 'nonLPCch';
+opts.dataPath = ['~/Google Drive/Research/ECoG_SS2e/data_results/'];
+
+for lt = lockType
+    for an = analysis
+        opts.lockType = lt{1};
+        
+        opts.analysis = an{1};        
+        extension = [opts.lockType 'sublogPower' opts.reference];
+        fileName =  ['allMBAnalysis' extension];
+    
+        load([opts.dataPath opts.lockType '/' fileName '.mat'])
+        opts.chans  = sum(data.chBinScore>opts.TvalChanThr)>1;
+        out = kmeansAnalyses(data,opts);
+    
+        save([opts.dataPath 'Kmeans/' opts.lockType '_' opts.analysis '_Tthr' ...
+            strrep(num2str(opts.TvalChanThr),'.','p') '_Kmeans' num2str(opts.numClusters)...
+            'MultiBand' extension '.mat'],'out')     
+    end
+end 
 %% PCA trial analysis
 addpath Analysis/
 addpath lib/
 
-lockType     = {'preStim2'};
+lockType     = {'preStim2','stim','RT'};
 
 opts                = [];
 opts.hems           = 'all';
@@ -299,7 +332,7 @@ for lt = lockType
     opts.lockType       = lt{1};
     extension           = [opts.lockType 'sublogPower' opts.reference];
     fileName            = [opts.hems 'MBAnalysis' extension];
-    load([opts.dataPath fileName '.mat'])
+    load([opts.dataPath opts.lockType '/' fileName '.mat'])
     
     out     = PCATrialDecomp(data,opts);
     
@@ -307,39 +340,6 @@ for lt = lockType
     save([opts.dataPath opts.lockType '/' fileName '.mat'],'out')
     fprintf('PCA trial decomp completed for %s\n',lt{1})    
 end
-
-
-%% Kmeans temporo-spectral analyses
-
-addpath Analysis
-addpath lib
-
-lockType     = {'preStim2'};%,'preStim','stim','RT'};
-analysis     = {'activity','studyRT','testRT'};
-
-opts = [];
-opts.TvalChanThr    = 3; % # inclusion criteria for channels; zero includes all chans
-opts.numClusters    = 3; % K opa
-opts.replicates     = 100;
-opts.reference      = 'nonLPCch';
-opts.dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
-
-for lt = lockType
-    for an = analysis
-        opts.lockType = lt{1};
-        opts.analysis = an{1};        
-        extension = [opts.lockType 'sublogPower' opts.reference];
-        fileName =  ['allMBAnalysis' extension];
-    
-        load([opts.dataPath fileName '.mat'])
-        opts.chans  = sum(data.chBinScore>opts.TvalChanThr)>1;
-        out = kmeansAnalyses(data,opts);
-    
-        save([opts.dataPath 'Kmeans/' opts.lockType '_' opts.analysis '_Tthr' ...
-            strrep(num2str(opts.TvalChanThr),'.','p') '_Kmeans' num2str(opts.numClusters)...
-            'MultiBand' extension '.mat'],'out')     
-    end
-end 
 
 %% lasso and ridge analysis
 ->
@@ -416,7 +416,7 @@ end
 %% obtain channel locations & plot locs
 
 dataSS2ret=load('/Users/alexandergonzalez/Google Drive/Research/ECoG Manuscript/data/allERSPshgamGroupstimLocksublogPowernonLPCleasL1TvalCh10.mat');
-dataSS2enc=load('/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/data_results/allERSPsdeltaGroupstimsublogPowernLPClowEvokedVar.mat');
+dataSS2enc=load('/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/data_results/stim/allERSPsdeltaGroupstimsublogPowernonLPCch.mat');
 SS2e_subjects       = {'16b','17b','18','24','28','29','30'};
 
 elecLocs            = [];
@@ -428,13 +428,15 @@ elecLocs.ROIid      = dataSS2enc.data.ROIid;
 elecLocs.SubjChans   =dataSS2enc.data.subjChans;
 elecLocs.hemChans    =dataSS2enc.data.hemChan;
 for ss = 1:numel(SS2e_subjects)
-    SS2retSubjID = find(strcmp(dataSS2ret.data.options.subjects,SS2e_subjects{ss}));
-    elecLocs.MNILocs     = [elecLocs.MNILocs;dataSS2ret.data.MNIlocsSubj{SS2retSubjID}];     
+    %SS2retSubjID = find(strcmp(dataSS2ret.data.options.subjects,SS2e_subjects{ss}));
+    load(['lib/elecLocs/subj' SS2e_subjects{ss} '_mni_elcoord_corrected.mat'],'mni_elcoord');
+    chans=mni_elcoord(dataSS2enc.data.LPCchanId(elecLocs.SubjChans==ss),:);    
+    elecLocs.MNILocs     = [elecLocs.MNILocs;chans];     
 end
-dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
+dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/Renderings/';
 fileName       = 'electrodeLocs';
 save([dataPath fileName '.mat'],'elecLocs');
-renderChanCortexSS2e();
+%renderChanCortexSS2e(dataPath);
 
 %% calc ITC
 

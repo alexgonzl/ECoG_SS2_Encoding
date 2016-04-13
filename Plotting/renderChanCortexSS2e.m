@@ -1,4 +1,4 @@
-function renderChanCortexSS2e()
+function renderChanCortexSS2e(savePath)
 
 % supplemental figure
 % renders each brain in native and mni space
@@ -8,11 +8,10 @@ figH = 600;
 set(gcf,'position',[100 200,figW,figH],'PaperPositionMode','auto','color','w')
 
 resolution = 600;
-plotPath = '/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/Plots/';
 filename = 'MNIsChanRenderings';
 
 %inkscapePath='/Applications/Inkscape.app/Contents/Resources/bin/inkscape';
-load('~/Google Drive/Research/ECoG_SS2e/data_results/electrodeLocs.mat')
+load('~/Google Drive/Research/ECoG_SS2e/data_results/Renderings/electrodeLocs.mat')
 
 view{1}      = [310,30];
 view{2}      = [50,30];
@@ -23,10 +22,13 @@ lMNIcortex   =  elecLocs.lMNIcortex;
 rMNIcortex   =  elecLocs.rMNIcortex;
 
 % ROI channel colors
+nROIs       = 5;
 colors      = [];
-colors{1}  = [0.9 0.2 0.2];
-colors{2}  = [0.1 0.5 0.8];
-colors{3}   = [0.2 0.6 0.3];
+colors{1}  = [0.5 0.6 0.7];
+colors{2}  = [0.7 0.6 0.5];
+colors{3}  = [0.6 0.7 0.6];
+colors{4}  = [0.7 0.4 0.8];
+colors{5}  = [0.7 0.7 0.4];
 
 %% render
 clf;
@@ -36,7 +38,7 @@ axes(ha(1));
 ctmr_gauss_plot(ha(1),lMNIcortex,[0 0 0],0,'l')
 loc_view(view{1}(1),view{1}(2))
 el_add(elecLocs.MNILocs(elecLocs.hemChans==1,:),'k',40) 
-for rr = 1:3
+for rr = 1:nROIs
     el_add(elecLocs.MNILocs(elecLocs.ROIid==rr&elecLocs.hemChans==1,:),colors{rr},35);
 end
 
@@ -44,8 +46,8 @@ axes(ha(2));
 ctmr_gauss_plot(ha(2),rMNIcortex,[0 0 0],0,'r')
 loc_view(view{2}(1),view{2}(2))
 el_add(elecLocs.MNILocs(elecLocs.hemChans==2,:),'k',40) 
-for rr = 1:3
+for rr = 1:nROIs
     el_add(elecLocs.MNILocs(elecLocs.ROIid==rr&elecLocs.hemChans==2,:),colors{rr},35);
 end
 
- print(gcf,'-dtiff',['-r' num2str(resolution)],[plotPath filename])
+ print(gcf,'-dtiff',['-r' num2str(resolution)],[savePath filename])

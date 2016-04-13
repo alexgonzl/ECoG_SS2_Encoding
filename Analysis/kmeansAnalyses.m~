@@ -31,9 +31,9 @@ out.opts  = opts;
 
 % select channels based on criterion
 out.chans = find(opts.chans);
-out.AnalysisBins  = data.AnalysisBins;
+out.bins  = data.AnalysisBins;
 out.nBands = data.nBands;
-out.nAnalysisBins = sum(out.AnalysisBins);
+out.nBins = sum(out.bins);
 switch opts.analysis
     case 'activity'
         X = permute(data.tBinChResp,[2 1 3]);        
@@ -42,7 +42,7 @@ switch opts.analysis
     case 'testRT'
         X=permute(data.dataToTestRTsCorr,[2 1 3]);
 end
-X = X(out.chans,:,out.AnalysisBins);
+X = X(out.chans,:,out.bins);
 X = X(:,:);
 
 %%
@@ -51,18 +51,15 @@ out.K = opts.numClusters;
 [out.IDX, out.C, out.SUMD, out.D] =...
     kmeans(X, out.K,'replicates',opts.replicates,'distance','correlation');
 
-% use original time-course for getting summary statitics (for
-% display purposes)
-out.Bins = data.Bins;
-out.tBinCluster_tChResp = zeros(out.K, out.nBands,data.nBins);
-out.pBinCluster_tChResp = zeros(out.K, out.nBands,data.nBins);
+out.tBinCluster_tChResp = zeros(out.K, out.nBands,out.nBins);
+out.pBinCluster_tChResp = zeros(out.K, out.nBands,out.nBins);
 for kk = 1:out.K
     chans = out.chans(out.IDX==kk);    
     for bb = 1:out.nBands
-        X =  squeeze(data.tBinChResp(bb,chans,:));
+        X =  squeeze(data.tBinChResp(bb,chans,out.bins));
         [~,p,~,t] = ttest(X);
-        out.tBinCluster_tChResp(kk,bb,:)=t.tstat;
-        out.pBinCluster_tChResp(kk,bb,:)=p;
+        data.tBinCluster_tChResp(kk,bb,:)=t.tstat;
+        data.pBinCluster_tChResp(kk,bb,:)=p;
     end
 end
 % %% 

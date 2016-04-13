@@ -125,9 +125,10 @@ if any(strcmp(opts.lockType,{'RT','preStim'}))
     % analysis bins
     data.AnalysisBins = true(size(data.Bins(:,2),1),1);
 else
-    data.baseLine       = dataIn.data.baseLine;
-    data.validAnalysisSamples = data.trialTime>data.baseLine(2);   
-    data.AnalysisBins         = data.Bins(:,2)>=data.baseLine(2);
+    if ~strcmp(opts.lockType,'RT')
+    data.baseLine       = dataIn.data.baseLine;end
+    data.validAnalysisSamples = data.trialTime>dataIn.data.baseLine(2);   
+    data.AnalysisBins         = data.Bins(:,2)>=dataIn.data.baseLine(2);
 end
 data.nValidAnalysisSamps = sum(data.validAnalysisSamples);
 

@@ -48,12 +48,14 @@ end
 
 data.mBinROI_tChResp  = zeros(3,data.nBands,data.nBins);
 data.tBinROI_tChResp  = zeros(3,data.nBands,data.nBins);
+data.pBinROI_tChResp  = zeros(3,data.nBands,data.nBins);
 for rr = 1:3
     chans = data.ROIid==rr;
     for ba= 1:data.nBands
         temp=squeeze(data.tBinChResp(ba,chans,:));
         data.mBinROI_tChResp(rr,ba,:)=mean(temp);
-        [~,~,~,t] = ttest(temp);
+        [~,p,~,t] = ttest(temp);
         data.tBinROI_tChResp(rr,ba,:)=t.tstat;
+        data.pBinROI_tChResp(rr,ba,:)=p;
     end
 end
