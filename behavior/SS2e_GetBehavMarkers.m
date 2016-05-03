@@ -10,7 +10,7 @@
 
 S =[];
 S.expt  = 'SS2e';
-S.subjName   = 'RR';
+S.subjName   = 'RB';
 S = SS2e_subjInfo(S,S.subjName);
 
 S.dataPath      = ['/Volumes/ECoG_SS2/SS2/data/' S.subjName '/' ];
@@ -32,10 +32,17 @@ end
 cnt = 1;
 for run = S.run_nums
     fprintf( '\nProcessing Subject %s, Block %s, Run# %d \n',S.subjName, S.blocklist{cnt}, run);
-    study   = load( [S.behavDataPath 'study_' num2str(run) '.' S.subjName '.out.mat']);
-    study   = study.theData;
-    test    = load( [S.behavDataPath 'test_' num2str(run) '.' S.subjName '.out.mat']);
-    test    = test.theData;
+    if ~strcmp(S.subjNum,'19')
+        study   = load( [S.behavDataPath 'study_' num2str(run) '.' S.subjName '.out.mat']);
+        study   = study.theData;
+        test    = load( [S.behavDataPath 'test_' num2str(run) '.' S.subjName '.out.mat']);
+        test    = test.theData;
+    else
+        study   = load( [S.behavDataPath 'AGstudylonglist.' S.subjName '.out.mat']);
+        study   = study.theData;
+        test    = load( [S.behavDataPath 'AGtestlonglist.' S.subjName '.out.mat']);
+        test    = test.theData;
+    end
    
     S = SS2e_CodeTrials(S,cnt,study,test);
     

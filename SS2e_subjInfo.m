@@ -47,7 +47,17 @@ switch subj
             S.TestKeys (rr,:) = {'4','5','6','+'};
         end
     case {'19'  , 'RB'}
-        % SS3...
+        S.subjNum   = '19';
+        S.subjName  = 'RB';
+        S.nruns = 1;
+        S.run_nums = 1;
+        S.blocklist = {'RB-0911-64'};
+        S.StudyKeys = cell(max(S.run_nums),numel(S.StudyResponses));
+        S.TestKeys = cell(max(S.run_nums),numel(S.TestResposnes));
+        for rr = 1:S.nruns
+            S.StudyKeys(rr,:) = {'4','5'};
+            S.TestKeys (rr,:) = {'4','5','6','+'};
+        end
     case {'24'  , 'LK'}
         S.subjNum = '24';
         S.subjName = 'LK';
