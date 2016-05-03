@@ -110,7 +110,7 @@ data.nTrialSamps    =numel(dataIn.data.trialTime);
 data.trialDur       = dataIn.data.trialDur;
 data.trialTime      = linspace(data.trialDur(1),data.trialDur(2),data.nTrialSamps);
 % bin info
-data.winSize                = 0.10; % in seconds
+data.winSize                = 0.05; % in seconds
 data.sldWin                 = data.winSize;
 % all bins
 [data.BinSamps , data.Bins] = getBinSamps(data.winSize,data.sldWin,data.trialTime);

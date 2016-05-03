@@ -7,12 +7,7 @@ addpath PreProcessing/
 addpath lib/
 addpath behavior/
 
-<<<<<<< HEAD
-subjects = {'19'}%{'16b','17b','18','24','28','29','30'};
-=======
-%subjects = {'16b','17b','18','24','28','29','30'};
 subjects = {'16b','17b','18','19','24','28','29','30'};
->>>>>>> a7d305afefd5c8b79285fbb75a1cfc9d19738756
 for s = subjects;
     preProcessRawData(s{1})
 end
@@ -25,7 +20,7 @@ addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
 
-subjects = {'16b','17b','18','24','28','29','30'};
+subjects = {'16b','17b','18','19','24','28','29','30'};
 reference = 'nonLPCCh'; nRefChans = 10; % using this nonLPC for now % 5/7/2014
 %reference = 'origCAR'; nRefChans = 0;
 %reference = 'nonLPCleasL1TvalCh'; nRefChans = 10;
@@ -50,10 +45,10 @@ addpath Analysis/
 addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
-subjects = {'16b','17b','18','24','28','29','30'};
+subjects = {'16b','17b','18','19','24','28','29','30'};
 %reference = 'origCAR';
-reference = 'nLPClowEvokedVar';
-%reference = 'nonLPCCh';
+%reference = 'nLPClowEvokedVar';
+reference = 'nonLPCCh';
 
 lockType = {'preStim','stim'};
 
@@ -85,61 +80,6 @@ for s = subjects
     fprintf('calc ERP done for subj %s\n', s{1})
 end
 
-%% plot CAR and reverse signals;
-
-addpath Plotting/
-
-%dateStr = '27-May-2013';
-%subjects = {'16b','18','24','28'};
-dateStr = '17-Jun-2013';
-subjects = {'17b','19','29'};
-lockType = 'stim';
-baselineType = 'sub';
-analysisType = 'Amp';
-reference = 'allChCAR'; nRefChans = 0;
-%reference = 'nonLPCleasL1TvalCh'; nRefChans = 10;
-dataPath = '../Results/';
-
-for s = subjects
-    load([dataPath 'ERP_Data/subj' s{1} '/ERPs' lockType 'Lock' baselineType analysisType ...
-        reference num2str(nRefChans) dateStr '.mat']);
-    x = data.CARSignal; % common signal
-    y = fliplr(x); % reverser common signal
-    figure; clf;
-    h = plot2Traces(x(data.evIdx),y(data.evIdx),linspace(-2,2,1744),'rb');xlim([-0.2 1]);
-    set(gca,'linewidth',2)
-    set(gca,'fontweight','bold')
-    set(gca,'fontsize',15);
-    h2 = legend([h.h1.mainLine, h.h2.mainLine],'CAR','reverse');
-    set(h2,'box','off')
-    fileName = [dataPath '/Plots/ERPs/other/subj' s{1} 'MeanCARSignal' reference num2str(nRefChans) dateStr];
-    print(h.f,'-dtiff','-r100',fileName);
-end
-
-%% plot erps
-addpath Plotting/
-close all
-dateStr = '27-May-2013'; subjects = {'16b','18','24','28'};
-%dateStr = '17-Jun-2013'; subjects = {'17b','19','29'};
-reference = 'nonLPCleasL1TvalCh'; nRefChans = 10;
-%reference = 'origCAR'; nRefChans = 0;
-
-dataPath = '../Results/';
-opts                = [];
-opts.plotPath       = [dataPath 'Plots/ERPs/'];
-opts.type           = 'erp';
-opts.lockType       = 'RT';
-opts.smoother       = 'loess';
-opts.smootherSpan   = 0.15;
-opts.analysisType   = 'Amp';
-opts.baselineType   = 'sub';
-
-for s = subjects
-    dataIn = load([dataPath 'ERP_Data/subj' s{1} '/ERPs' opts.lockType 'Lock' opts.baselineType opts.analysisType ...
-        reference num2str(nRefChans) dateStr '.mat']);
-    plotERPs(dataIn.data,opts);
-end
-
 %% bandpass data
 
 addpath PreProcessing/
@@ -147,7 +87,7 @@ addpath Analysis/
 addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
-subjects = {'16b','17b','18','24','28','29','30'};
+subjects = {'16b','17b','18','19','24','28','29','30'};
 %reference = 'nLPClowEvokedVar';
 reference = 'nonLPCCh';
 
@@ -169,7 +109,7 @@ addpath Analysis/
 addpath lib/
 dataPath = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
-subjects = {'16b','17b','18','24','28','29','30'};
+subjects = {'16b','17b','18','19','24','28','29','30'};
 reference = 'nonLPCch';
 %reference = 'nLPClowEvokedVar';
 
@@ -180,11 +120,12 @@ baselineType = 'sub';%{'rel','sub'}
 
 for s = subjects
     for band = {'delta','theta','alpha','beta','lgam','hgam'};
-        for lt = lockType
-            dataIn = load([dataPath s{1} '/Spectral_Data/continous/BandPass' band{1} reference '.mat']);
+        dataIn = load([dataPath s{1} '/Spectral_Data/continous/BandPass' band{1} reference '.mat']);
+        dataIn.data.analysisType    = analysisType;
+        dataIn.data.baselineType    = baselineType;
+            
+        for lt = lockType            
             dataIn.data.lockType        = lt{1};
-            dataIn.data.analysisType    = analysisType;
-            dataIn.data.baselineType    = baselineType;
             
             if strcmp(lt{1},'RT')
                 % load the stim first
@@ -205,42 +146,20 @@ end
 
 %%
 
-%% plot ersps
-subjects = {'16b','18','24','28'};
-%subjects = {'17b','19','29'};
-reference = 'nonLPCleasL1TvalCh'; nRefChans = 10;
-
-dataPath = '../Results/';
-
-opts = [];
-opts.plotPath = [dataPath 'Plots/Spectral/'];
-opts.lockType = 'RT';
-opts.baselineType = 'sub';
-opts.analysisType = 'logPower';
-opts.type = 'power';
-opts.smoother = 'loess';
-opts.smootherSpan = 0.15;
-for s = subjects
-    for band = {'hgam'}%{'delta','theta','alpha','beta','lgam','hgam','bb'};
-        dataIn = load([dataPath 'Spectral_Data/subj' s{1} '/ERSPs' band{1} opts.lockType 'Lock' opts.baselineType opts.analysisType ...
-            reference num2str(nRefChans) '.mat']);
-        plotERPs(dataIn.data,opts);
-    end
-end
-
 %% group data
 addpath Analysis/
 addpath lib/
 
 bands        = {'delta','theta','alpha','beta','lgam','hgam'};
-lockType     = {'preStim2'}%,'prestim','stim','RT'};
+lockType     = {'preStim2','stim','RT'};
 %lockType     = {'RT'};
 
 opts                = [];
 opts.hems           = 'all';
 %opts.reference      = 'nLPClowEvokedVar';
 opts.reference      = 'nonLPCch';
-opts.subjects       = {'16b','17b','18','24','28','29','30'};
+%subjects = {'16b','17b','18','19','24','28','29','30'};
+opts.subjects       = {'16b','17b','18','19','24','28','29','30'};
 opts.dataPath       = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
 
 for lt = lockType
