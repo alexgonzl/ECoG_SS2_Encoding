@@ -7,6 +7,7 @@ function timeStamps = findEventMarkers(pDiodeSignal, matlabStamps)
 PD_SR   = 24414.1;  % photo diode sampling rate
 stimDist = 1.5;       % minimum distance allowed between stims in seconds
 
+matlabStamps = matlabStamps(:);
 nEvents = numel(matlabStamps);
 
 % correct signal for noise
@@ -22,11 +23,15 @@ fprintf('Cleaning pdiode signal: time elapsed %g\n',toc)
 pDiodeStamps = pDiodeStamps/PD_SR;
 
 % match time derivatives
-[c,lags]=crosscorr(diff(pDiodeStamps),diff(matlabStamps));
+%[c,lags]=crosscorr(diff(pDiodeStamps),diff(matlabStamps));
+[c,lags]=xcorr(diff(pDiodeStamps),diff(matlabStamps));
 [~,id]=max(c);
 
-timeStamps=lagmatrix(pDiodeStamps,lags(id)); 
-timeStamps(isnan(timeStamps))=[]; 
+%timeStamps=lagmatrix(pDiodeStamps,lags(id)); 
+%timeStamps(isnan(timeStamps))=[]; 
+timeStamps=pDiodeStamps;
+timeStamps(1:lags(id))=[]; 
+timeStamps=timeStamps(:);
 
 if numel(timeStamps) < nEvents
     error('number of stamps do not match')
@@ -34,7 +39,7 @@ else
     timeStamps = timeStamps(1:nEvents);
 end
 
-assert(corr(timeStamps,matlabStamps')>0.999, 'bad match between diode and matlab samples')
-fprintf('Match between diode and matlab is: %g%% \n',corr(timeStamps,matlabStamps')*100)
+assert(corr(timeStamps,matlabStamps)>0.999, 'bad match between diode and matlab samples')
+fprintf('Match between diode and matlab is: %g%% \n',corr(timeStamps,matlabStamps)*100)
 
 return

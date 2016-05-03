@@ -48,10 +48,10 @@ switch subj
         end
     case {'19'  , 'RB'}
         S.subjNum   = '19';
-        S.subjName  = 'RR';
+        S.subjName  = 'RB';
         S.nruns = 1;
         S.run_nums = 1;
-        S.blocklist = {'MD0311-13', 'MD0311-16'};
+        S.blocklist = {'RB-0911-64'};
         S.StudyKeys = cell(max(S.run_nums),numel(S.StudyResponses));
         S.TestKeys = cell(max(S.run_nums),numel(S.TestResposnes));
         for rr = 1:S.nruns

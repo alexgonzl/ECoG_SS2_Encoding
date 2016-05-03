@@ -56,7 +56,7 @@ else
 end
 data.comp       = 7;  
 data.lowpass    = 180;  lp = data.lowpass; % low pass filter
-data.hipass     = 1;    hp = data.hipass;% high pass filter
+data.hipass     = 0.5;    hp = data.hipass;% high pass filter
 data.notch      = [60 120 180]; notches = data.notch; % notch; notches =
 data.SR         = data.SRorig/data.comp*data.upSamp; SR = data.SR;
 

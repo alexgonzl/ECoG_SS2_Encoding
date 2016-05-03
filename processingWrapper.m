@@ -7,7 +7,12 @@ addpath PreProcessing/
 addpath lib/
 addpath behavior/
 
+<<<<<<< HEAD
 subjects = {'19'}%{'16b','17b','18','24','28','29','30'};
+=======
+%subjects = {'16b','17b','18','24','28','29','30'};
+subjects = {'16b','17b','18','19','24','28','29','30'};
+>>>>>>> a7d305afefd5c8b79285fbb75a1cfc9d19738756
 for s = subjects;
     preProcessRawData(s{1})
 end
