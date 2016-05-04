@@ -4,6 +4,7 @@ function  plottingWrapper(figNum)
 addpath ~/Documents/ECoG_SS2_Encoding/lib/
 addpath(genpath('~/Documents/ECoG_SS2_Encoding/lib/contourfcm'))
 addpath ~/Documents/ECoG_SS2_Encoding/Analysis/
+addpath ~/Documents/ECoG_SS2_Encoding/Plotting/
 
 switch figNum
     case 1

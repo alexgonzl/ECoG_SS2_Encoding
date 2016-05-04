@@ -5,9 +5,8 @@ savePath  = '~/Google Drive/Research/ECoG_SS2e/Behavior/summary/';
 % output structure
 behavPerf = [];
 %behavPerf.subjects      = {'SRb','MD','LK','NC','RR','RHb','JT2'};
-behavPerf.subjects      = {'16b','17b','18','24','28','29','30'};
+behavPerf.subjects      = {'16b','17b','18','19','24','28','29','30'};
 behavPerf.dataPath      = '~/Google Drive/Research/ECoG_SS2e/Behavior/';
-nItemsPerBlock = 20;
 
 preAlloc              = {'condID','sRespID','tRespID','blockID','subjID','studyRTs','testRTs'};
 for aa = 1:numel(preAlloc)
@@ -16,6 +15,11 @@ end
 
 nSubjs = numel(behavPerf.subjects);
 for ss = 1:nSubjs
+    if strcmp(behavPerf.subjects{ss},'19')
+        nItemsPerBlock = 160;
+    else
+        nItemsPerBlock = 20;
+    end
     behavDataPath = [behavPerf.dataPath behavPerf.subjects{ss}];
     load([behavDataPath '/behavResults.mat']);
     

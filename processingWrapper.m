@@ -113,7 +113,7 @@ subjects = {'16b','17b','18','19','24','28','29','30'};
 reference = 'nonLPCch';
 %reference = 'nLPClowEvokedVar';
 
-lockType     = {'preStim2'}%{'preStim2','preStim','stim','RT'};
+lockType     = {'preStim2'}%,'stim','RT'};
 
 analysisType = 'logPower';%{'Amp','Power', 'logPower'};
 baselineType = 'sub';%{'rel','sub'}
@@ -151,7 +151,7 @@ addpath Analysis/
 addpath lib/
 
 bands        = {'delta','theta','alpha','beta','lgam','hgam'};
-lockType     = {'preStim2','stim','RT'};
+lockType     = {'preStim2'}%,'stim','RT'};
 %lockType     = {'RT'};
 
 opts                = [];
@@ -192,8 +192,8 @@ addpath Analysis/
 addpath lib/
 
 bands        = {'delta','theta','alpha','beta','lgam','hgam'};
-lockType     = {'preStim2','preStim','stim','RT'};
-%lockType     = {'RT'};
+lockType     = {'preStim2','stim','RT'};
+%lockType     = {'preStim2'};
 opts                = [];
 opts.hems           = 'all';
 opts.bands          = bands;
@@ -213,7 +213,7 @@ end
 addpath Analysis
 addpath lib
 
-lockType     = {'preStim2','preStim','stim','RT'};
+lockType     = {'preStim2','stim','RT'};
 %analysis     = {'activity','studyRT','testRT'};
 analysis     = {'activity'};
 
@@ -246,6 +246,7 @@ addpath Analysis/
 addpath lib/
 
 lockType     = {'preStim2','stim','RT'};
+%lockType     = {'preStim2'}%,'stim','RT'};
 
 opts                = [];
 opts.hems           = 'all';

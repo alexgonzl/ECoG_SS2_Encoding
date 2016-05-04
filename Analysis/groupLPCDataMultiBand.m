@@ -1,6 +1,6 @@
 function data = groupLPCDataMultiBand(opts)
 
-nSubjs = 7;
+nSubjs = 8;
 bands  = opts.bands;
 
 extension = [opts.lockType 'sublogPower' opts.reference];

@@ -55,7 +55,7 @@ switch subj
         S.StudyKeys = cell(max(S.run_nums),numel(S.StudyResponses));
         S.TestKeys = cell(max(S.run_nums),numel(S.TestResposnes));
         for rr = 1:S.nruns
-            S.StudyKeys(rr,:) = {'4','5'};
+            S.StudyKeys(rr,:) = {'2','1'};
             S.TestKeys (rr,:) = {'4','5','6','+'};
         end
     case {'24'  , 'LK'}

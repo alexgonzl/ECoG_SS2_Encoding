@@ -10,7 +10,7 @@ addpath Plotting/
 addpath lib/
 
 %dirPath         = '/Volumes/ECoG_SS2/SS2/SS2e/Results/';
-dirPath         = ['/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/data_results/'] ;
+dirPath         = ['~/Google Drive/Research/ECoG_SS2e/data_results/'] ;
 %fileName        = ['allERSPs' band 'Group' lock 'sublogPowernonLPCCh'];
 %fileName        = ['allMBAnalysis' lock 'sublogPowernLPClowEvokedVar'];
 fileName        = ['allMBAnalysis' lock 'sublogPowernonLPCch'];
@@ -31,7 +31,7 @@ close all
 info            =[];
 info.groups     = groups;
 info.rownames   = cellstr(strcat('BinCenter',num2str(mean(data.Bins,2),3)));
-info.savePath   = ['/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e' ...
+info.savePath   = ['~/Google Drive/Research/ECoG_SS2e' ...
     '/Plots/SS2e_MB_Analyses/a' num2str(AnalysisNum) '/'];
 if ~exist(info.savePath,'dir')
     mkdir(info.savePath);
