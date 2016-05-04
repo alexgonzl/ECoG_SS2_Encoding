@@ -7,7 +7,7 @@ load([dataPath 'behavSummary.mat'])
 inkscapePath='/Applications/Inkscape.app/Contents/Resources/bin/inkscape';
 fP = '~/Google Drive/Research/ECoG_SS2e/Plots/Behavior/';
 
-nSubjs=7;
+nSubjs=numel(behavPerf.subjects);
 AC = zeros(nSubjs,1);
 RTe = zeros(nSubjs,1);
 RTr = zeros(nSubjs,1);
@@ -18,7 +18,7 @@ for ss = 1:nSubjs
     RTr(ss) = mean([behavPerf.Subj_testRT_EncPerf(ss,:).mean]);
 end
 
-shapes = 'ods><x+';
+shapes = 'ods><x+^';
 figure(1); clf; set(gcf, 'position', [100 100 800 400],'paperpositionmode','auto');
 sD = 200;
 % accuracy plot
