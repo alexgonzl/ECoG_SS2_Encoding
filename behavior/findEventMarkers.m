@@ -39,7 +39,7 @@ else
     timeStamps = timeStamps(1:nEvents);
 end
 
-assert(corr(timeStamps,matlabStamps)>0.999, 'bad match between diode and matlab samples')
 fprintf('Match between diode and matlab is: %g%% \n',corr(timeStamps,matlabStamps)*100)
+assert(corr(timeStamps,matlabStamps)>0.99, 'bad match between diode and matlab samples')
 
 return

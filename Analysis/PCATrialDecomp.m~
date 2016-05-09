@@ -41,11 +41,11 @@ for ss=1:out.nSubjs
     % concatenate bands and time bins
     x = x(:,:,:);
     [d1,d2,d3] = size(x); % d1 -> n subj channels, d2 -> # of trials, d3 -> bands*timebins
-    rts1 = data.studyRTs{ss}(data.trials{ss});
-    rts2 = data.testRTs{ss}(data.trials{ss});
+    rts1 = -log10(data.studyRTs{ss}(data.trials{ss}));
+    rts2 = -log10(data.testRTs{ss}(data.trials{ss}));
 
     out.Comps{ss} = zeros(d1,d2,out.nComps);
-    out.Projections(subj) = zeros(d1,d3,out.nComps);
+
         
     % for subject channels
     for c=1:d1
@@ -55,24 +55,127 @@ for ss=1:out.nSubjs
         % PCA
         [C,S,E]= ppca(xx',out.nComps);  
         out.Comps{ss}(c,:,:) = C;
-        out.Projections{ss}(c,:,:) = S;
+        out.Projections(subjChans(c),:,:) = S;
         out.VarExp(subjChans(c),:) = E;
         
         % Correlations
-        out.CorrStudyRTs(subjChans(c),:) = corr(C,atan(rts1));
-        out.CorrTestRTs(subjChans(c),:)  = corr(C,atan(rts2));
+        out.CorrStudyRTs(subjChans(c),:) = corr(C,rts1);
+        out.CorrTestRTs(subjChans(c),:)  = corr(C,rts2);
         
         % GLMSs
-		out.StudyGLMs{subjChans(c)} = fitglm(C,atan(rts1));
+		out.StudyGLMs{subjChans(c)} = fitglm(C,rts1);
 		out.StudyGLMSChanCompTVal(subjChans(c),:) ...
 			= out.StudyGLMs{subjChans(c)}.Coefficients.tStat(2:out.nComps+1);
 		out.StudyGLMsChanRsquared(subjChans(c))...
 			= out.StudyGLMs{subjChans(c)}.Rsquared.Ordinary;
 
-		out.TestGLMs{subjChans(c)} = fitglm(C,atan(rts2));
+		out.TestGLMs{subjChans(c)} = fitglm(C,rts2);
 		out.TestGLMSChanCompTVal(subjChans(c),:) ...
 			= out.TestGLMs{subjChans(c)}.Coefficients.tStat(2:out.nComps+1);
 		out.TestGLMsChanRsquared(subjChans(c)) ...
 			= out.TestGLMs{subjChans(c)}.Rsquared.Ordinary;
     end
 end
+
+% K-Means on the + and - components
+out.GLMsCompsThr        = 1;
+out.GLMsCompsKMeans     = 3;
+out.KMeansReplicates    = 100;
+
+% Study
+out.StudyGLMsCompKmeans =[];
+X = out.StudyGLMSChanCompTVal;
+
+% Study Positive
+[ch,co] = find(X>out.GLMsCompsThr);
+out.StudyGLMsCompKmeans.PosCompIDs = [ch,co];
+nPosComps = numel(ch);
+Y = zeros(nPosComps,out.nFeat);
+for ii = 1:nPosComps
+    Y(ii,:) = out.Projections(ch(ii),:,co(ii));
+end
+[IDX, C, SUMD, D] =...
+    kmeans(Y, out.GLMsCompsKMeans,'replicates',out.KMeansReplicates,'distance','correlation');
+out.StudyGLMsCompKmeans.PIDX     = IDX;
+out.StudyGLMsCompKmeans.PC       = C;
+out.StudyGLMsCompKmeans.PSUMD    = SUMD;
+out.StudyGLMsCompKmeans.PD       = D;
+
+% Get Tvals for every cluster 
+for ii = 1:out.GLMsCompsKMeans
+    clcomps = find(IDX==ii); % cluster IDs for each componenent
+    clch = ch(clcomps) ;
+    clco= co(clcomps);
+     nn = numel(comps); 
+    % create matrix for each cluster
+    Z = zeros(nn,out.nFeat); 
+    for jj = 1:nn         
+        Z(jj,:) = out.Projections(clch(jj),:,clco(jj));
+    end    
+    [~,p,~,t] = ttest(Z);
+    out.StudyGLMsCompKmeans.PT(ii,:) = t.tstat;
+    out.StudyGLMsCompKmeans.PP(ii,:) = p;
+end
+
+% Study Negative
+[ch,co] = find(X<-out.GLMsCompsThr);
+out.StudyGLMsCompKmeans.NegCompIDs = [ch,co];
+nNegComps = numel(ch);
+Y = zeros(nNegComps,out.nFeat);
+for ii = 1:nNegComps
+    Y(ii,:) = out.Projections(ch(ii),:,co(ii));
+end
+[IDX, C, SUMD, D] =...
+    kmeans(Y, out.GLMsCompsKMeans,'replicates',out.KMeansReplicates,'distance','correlation');
+out.StudyGLMsCompKmeans.NIDX     = IDX;
+out.StudyGLMsCompKmeans.NC       = C;
+out.StudyGLMsCompKmeans.NSUMD    = SUMD;
+out.StudyGLMsCompKmeans.ND       = D;
+
+% Get Tvals for every cluster 
+for ii = 1:out.GLMsCompsKMeans
+    clcomps = find(IDX==ii); % cluster IDs for each componenent
+    clch = ch(clcomps) ;
+    clco= co(clcomps);
+     nn = numel(comps); 
+    % create matrix for each cluster
+    Z = zeros(nn,out.nFeat); 
+    for jj = 1:nn         
+        Z(jj,:) = out.Projections(clch(jj),:,clco(jj));
+    end    
+    [~,p,~,t] = ttest(Z);
+    out.StudyGLMsCompKmeans.NT(ii,:) = t.tstat;
+    out.StudyGLMsCompKmeans.NP(ii,:) = p;
+end
+
+% Test
+out.TestGLMsCompKmeans =[];
+X = out.TestGLMSChanCompTVal;
+[ch,co] = find(X>out.GLMsCompsThr);
+out.TestGLMsCompKmeans.PosCompIDs = [ch,co];
+nPosComps = numel(ch);
+Y = zeros(nPosComps,out.nFeat);
+for ii = 1:nPosComps
+    Y(ii,:) = out.Projections(ch(ii),:,co(ii));
+end
+[IDX, C, SUMD, D] =...
+    kmeans(Y, out.GLMsCompsKMeans,'replicates',out.KMeansReplicates,'distance','correlation');
+out.TestGLMsCompKmeans.PIDX     = IDX;
+out.TestGLMsCompKmeans.PC       = C;
+out.TestGLMsCompKmeans.PSUMD    = SUMD;
+out.TestGLMsCompKmeans.PD       = D;
+
+[ch,co] = find(X<-out.GLMsCompsThr);
+out.TestGLMsCompKmeans.NegCompIDs = [ch,co];
+nNegComps = numel(ch);
+Y = zeros(nNegComps,out.nFeat);
+for ii = 1:nNegComps
+    Y(ii,:) = out.Projections(ch(ii),:,co(ii));
+end
+[IDX, C, SUMD, D] =...
+    kmeans(Y, out.GLMsCompsKMeans,'replicates',out.KMeansReplicates,'distance','correlation');
+out.TestGLMsCompKmeans.NIDX      = IDX;
+out.TestGLMsCompKmeans.NC       = C;
+out.TestGLMsCompKmeans.NSUMD    = SUMD;
+out.TestGLMsCompKmeans.ND       = D;
+

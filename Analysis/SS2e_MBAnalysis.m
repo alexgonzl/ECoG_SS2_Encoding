@@ -31,8 +31,9 @@ close all
 info            =[];
 info.groups     = groups;
 info.rownames   = cellstr(strcat('BinCenter',num2str(mean(data.Bins,2),3)));
-info.savePath   = ['~/Google Drive/Research/ECoG_SS2e' ...
-    '/Plots/SS2e_MB_Analyses/a' num2str(AnalysisNum) '/'];
+info.savePath   = opts.savePath;
+% info.savePath   = ['~/Google Drive/Research/ECoG_SS2e' ...
+%     '/Plots/SS2e_MB_Analyses/a' num2str(AnalysisNum) '/'];
 if ~exist(info.savePath,'dir')
     mkdir(info.savePath);
 end

@@ -24,9 +24,9 @@ rMNIcortex   =  elecLocs.rMNIcortex;
 % ROI channel colors
 nROIs       = 5;
 colors      = [];
-colors{1}  = [0.5 0.6 0.7];
-colors{2}  = [0.7 0.6 0.5];
-colors{3}  = [0.6 0.7 0.6];
+colors{1}  = [240 35 17]/255;
+colors{2}  = [2 93 140]/255;
+colors{3}  = [122 179 23]/255;
 colors{4}  = [0.7 0.4 0.8];
 colors{5}  = [0.7 0.7 0.4];
 

@@ -208,6 +208,7 @@ for lt = lockType
     save([opts.dataPath fileName '.mat'],'data')
     fprintf('grouping data completed for %s\n',lt{1})    
 end
+
 %% Kmeans temporo-spectral analyses
 
 addpath Analysis
@@ -245,8 +246,8 @@ end
 addpath Analysis/
 addpath lib/
 
+%lockType     = {'preStim2','stim','RT'};
 lockType     = {'preStim2','stim','RT'};
-%lockType     = {'preStim2'}%,'stim','RT'};
 
 opts                = [];
 opts.hems           = 'all';
@@ -342,7 +343,7 @@ end
 
 dataSS2ret=load('/Users/alexandergonzalez/Google Drive/Research/ECoG Manuscript/data/allERSPshgamGroupstimLocksublogPowernonLPCleasL1TvalCh10.mat');
 dataSS2enc=load('/Users/alexandergonzalez/Google Drive/Research/ECoG_SS2e/data_results/stim/allERSPsdeltaGroupstimsublogPowernonLPCch.mat');
-SS2e_subjects       = {'16b','17b','18','24','28','29','30'};
+SS2e_subjects       = {'16b','17b','18','19','24','28','29','30'};
 
 elecLocs            = [];
 elecLocs.MNILocs    = [];

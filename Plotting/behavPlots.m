@@ -1,11 +1,12 @@
 %% Plot the results by subject.
-function behavPlots()
+function behavPlots(savePath)
 
 dataPath  = '~/Google Drive/Research/ECoG_SS2e/Behavior/summary/';
 load([dataPath 'behavSummary.mat'])
 
 inkscapePath='/Applications/Inkscape.app/Contents/Resources/bin/inkscape';
-fP = '~/Google Drive/Research/ECoG_SS2e/Plots/Behavior/';
+%fP = '~/Google Drive/Research/ECoG_SS2e/Plots/Behavior/';
+fP = savePath;
 
 nSubjs=numel(behavPerf.subjects);
 AC = zeros(nSubjs,1);
@@ -19,7 +20,8 @@ for ss = 1:nSubjs
 end
 
 shapes = 'ods><x+^';
-figure(1); clf; set(gcf, 'position', [100 100 800 400],'paperpositionmode','auto');
+figure(1); clf; 
+set(gcf, 'position', [100 100 800 400],'paperpositionmode','auto');
 sD = 200;
 % accuracy plot
 axes('position',[0.05 0.1 0.18 0.85]); hold on;

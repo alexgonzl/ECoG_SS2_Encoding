@@ -7,7 +7,8 @@ load([opts.dataPath opts.lock '/' fileName '.mat'])
 fileName = ['PCATrialDecomp-MBAnalysis' opts.lock 'sublogPowernonLPCch'];
 load([opts.dataPath opts.lock '/' fileName '.mat'])
 pcadat = out; clear out;
-
+% load electrode locations
+load('~/Google Drive/Research/ECoG_SS2e/data_results/Renderings/electrodeLocs.mat')
 
 %% plot 1. R2 correlations histograms
 
@@ -55,7 +56,7 @@ p2Name = ['GLM_PCA-R2_studytestCorr' opts.lock '_rThr' strrep(num2str(opts.rThr)
 
 figure(2); clf;
 x =  pcadat.StudyGLMsChanRsquared;
-y = pcadat.TestGLMsChanRsquared;
+y =  pcadat.TestGLMsChanRsquared;
 
 set(gcf,'paperpositionmode','auto','color','white')
 set(gcf,'position',[100,100,500,400]); hold on;
@@ -69,7 +70,7 @@ s.MarkerEdgeColor = [0.45 0.75 0.9];
 s.MarkerFaceColor = [0.45 0.75 0.9];
 set(gca,'fontsize',20,'xTick',[ 0 opts.rThr 0.6],'yTick',[ 0 opts.rThr 0.6])
 pfit = polyfit(x,y,1);
-p=plot([0.1 0.6],[pfit(1)*0.1 pfit(1)*0.7]+pfit(2));
+p=plot([0.1 0.7],[pfit(1)*0.1 pfit(1)*0.7]+pfit(2));
 p.Color = [0.3 0.3 0.35];
 p.LineWidth=3;
 
@@ -78,6 +79,36 @@ ylabel('Test (R^2)')
 
 print(gcf,'-dpdf', [opts.savePath p2Name ])
 
+%% Rendering of electrode locations.
+p3Name = ['GLM_PCA-R2_studyRender'];
+p4Name = ['GLM_PCA-R2_testRender'];
+
+delta = 5;
+levels   = 0:delta:75;
+nLevels = numel(levels);
+CM      =  brewermap(nLevels,'YlOrRd');
+
+% study
+x       =  quant(pcadat.StudyGLMsChanRsquared*100,delta);
+Weights = ones(size(x));
+for ii = 1:nLevels
+    chans = x==levels(ii);
+    Weights(chans) = ii;
+end
+han=renderChanWeights(elecLocs,Weights,CM);
+print(han,'-dtiff','-r300', [opts.savePath p3Name])
+
+% test
+x  =  quant(pcadat.TestGLMsChanRsquared*100,delta);
+Weights = zeros(size(x));
+for ii = 1:nLevels
+    chans = x==levels(ii);
+    Weights(chans) = ii;
+end
+han=renderChanWeights(elecLocs,Weights,CM);
+print(han,'-dtiff','-r300', [opts.savePath p4Name])
+
+%%
 if 0
 %% plot 3 and 4 spectrograms of top components
 % component correlations.
