@@ -19,6 +19,11 @@ if isfield(opts,'downsample')
 else
     downSampRate = 4;
 end
+if isfield(opts,'nFreqs')
+    nFreqs = opts.nFreqs;
+else
+    nFreqs = 30;
+end
 SR = SR/downSampRate;
 
 data.nTrials        = numel(data.trialOnsets);
@@ -38,11 +43,12 @@ epochTime = linspace(epochDur(1),epochDur(2),ceil(diff(epochDur)*SR)); nEpSamps 
 trialSamps     = epochTime>=dur(1) & epochTime<=dur(2);
 
 % Determine time samples in the trial
-trialTime      = epochTime(trialSamps); data.trialTime = trialTime;
+trialTime      = epochTime(trialSamps); 
 
-evOnsets = data.trialOnsets;
+evOnsets = data.trialOnsets; % in samples at downsampled rate
+evOnsets = round(evOnsets/downSampRate);
 nEvents = numel(evOnsets);
-epSamps = floor(epochTime*SR);
+epSamps = floor(epochTime*SR); % epoch time in samples 
 evIdx = zeros(nEvents,nEpSamps);
 
 switch  data.lockType    
@@ -56,57 +62,57 @@ end
 for ev = 1:nEvents
     evIdx(ev,:) = epSamps+evOnsets(ev)+offset(ev);
 end
+validTrials = find(~isnan(offset))';
 
 % LPC channels
-channels = data.rois.LPCchannels;
-nChannels = numel(channels);
+chans   = data.rois.LPC;
+nChans  = numel(chans);
 
-%
-validTrials = find(~isnan(offset))';
-X = data.amp(channels,:);data.signal=[]; data.amp=[]; data.phase=[];
-Y = multiBandFilter(X,maxF,SR)
+% decimate data
+X = data.signal(chans,:);
+x = decimate(X(1,:),downSampRate);
+nSamps  = numel(x);
+Y       = zeros(nChans,nSamps);
+Y(1,:)  = x;
+for ch = 2:nChans
+    Y(ch,:) = decimate(X(ch,:),downSampRate);
+end
+clear X;
 
-% low pass the amplitude
-%X=channelFilt(X,SR,20,[],[]);
+Z = multiBandFilter(Y,nFreqs,SR);
+clear Y;
 
+% decompose and extract phase per channel and frequency
+Ang = zeros(size(Z));
+parfor ch = 1:nChans    
+    [~,Ang(ch,:,:)] = multiBandDecomp(squeeze(Z(ch,:,:)));
+end
+clear Z;
 
-erp = nan(data.nChans,nEvents,nEpSamps);
-for ch = 1:data.nChans
-    x = X(ch,:);
-    for tr = validTrials
-        erp(ch,tr,:) = x(evIdx(tr,:));
+trPh = nan(nChans,nFreqs,nEvents,nEpSamps);
+for ch = 1:nChans
+    for ff = 1:nFreqs
+        x = squeeze(Ang(ch,ff,:,:));
+        for tr = validTrials
+            trPh(ch,ff,tr,:) = x(evIdx(tr,:));
+        end
     end
 end
 
-% Percent signal change for amplitude.
-switch data.analysisType
-    case 'Power'
-        erp = erp.^2;
-    case 'logPower'
-        erp = 20*log10(abs(erp));
-end
-
-% Correct for baseline fluctuations before trial onset. In case of RT
-% locked analysis, it uses the baselines from the stim locked (loaded outside)
-if ~strcmp(data.lockType,'RT')
-    baselineIdx = epochTime<=data.baseLine(2) & epochTime>= data.baseLine(1);
-    data.baseLineMeans = nanmean(erp(:,:,baselineIdx),3);
-end
-
-
-switch data.baselineType
-    case 'sub'
-        erp = bsxfun(@minus,erp,data.baseLineMeans);
-    case 'rel'
-        erp = bsxfun(@rdivide,erp,data.baseLineMeans);
-end
-
-
 % Take relevant samples of trial
-erp = erp(:,:,trialSamps); data.erp = erp;
+trPh = trPh(:,:,:,trialSamps); 
 
-end
 
+%% output
+out             = [];
+out.SR          = SR;
+out.nEvents     = nEvents;
+out.trialDur    = dur;
+out.trialTime   = trialTime;
+out.trPh        = trPh;
+out.nFreqs      = nFreqs;
+out.behavior    = data.behavorInfo;
+out.rois        = data.rois;
 
 
 

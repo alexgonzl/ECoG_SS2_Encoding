@@ -10,5 +10,6 @@ for ch = 1:nChans
     x = signal(ch,:);
     parfor ff = 1:maxF
         Y(ch,ff,:) = filtfilt(B(ff,:),A(ff,:),x);        
-    end    
+    end
+    %disp(sprintf('%g of channels filtered',ch/nChans))
 end
