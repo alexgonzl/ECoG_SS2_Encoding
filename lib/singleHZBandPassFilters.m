@@ -1,11 +1,10 @@
-function [B,A] = singleHZBandPass(maxFreq,fs)
-
+function [B,A] = singleHZBandPassFilters(maxFreq,fs)
 
 Fr   = 1:maxFreq;
 nF   = numel(Fr);
 
 dP = 1;
-dS = 20;
+dS = 40;
 fOrd = 3;
 
 B = zeros(nF,1+fOrd*2);
