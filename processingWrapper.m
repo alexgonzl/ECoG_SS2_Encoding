@@ -144,9 +144,7 @@ for s = subjects
     end
 end
 
-%%
-
-%% group data
+%% group data for individual bands
 addpath Analysis/
 addpath lib/
 
@@ -268,10 +266,7 @@ for lt = lockType
 end
 
 %% lasso and ridge analysis
-->
-->
 
-%%
 %%  Plot Correlation time-courses per band and ROI
 
 addpath Analysis/

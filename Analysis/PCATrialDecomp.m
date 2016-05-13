@@ -1,15 +1,16 @@
 function out = PCATrialDecomp(data,opts)
 % this analysis function finds the principal components for each channel
 % that explains the most variance across channels.
-% 
-% it also uses these components to 
+%
+% it also uses these components to
 %
 % opts:
 % 	nComps -> number of components
 %
 % data input must be from the groupLPCDataMultiband.
 
-
+% fix random seed for stability of clusters.
+rng(1);
 out                 = [];
 out.nSubjs 			= size(data.BinERPs,1);
 out.nComps 			= opts.nComps;
@@ -36,24 +37,24 @@ out.TestGLMsChanRsquared    = zeros(out.nChans,1);
 
 for ss=1:out.nSubjs
     subjChans = find(data.subjChans==ss);
-	% re-order to channels, trials , bands , time bins
+    % re-order to channels, trials , bands , time bins
     x = permute(data.BinERPs{ss}(:,:,:,data.AnalysisBins),[2 3 1 4]);
     % concatenate bands and time bins
     x = x(:,:,:);
-    [d1,d2,d3] = size(x); % d1 -> n subj channels, d2 -> # of trials, d3 -> bands*timebins
+    [d1,d2,~] = size(x); % d1 -> n subj channels, d2 -> # of trials, d3 -> bands*timebins
     rts1 = -log10(data.studyRTs{ss}(data.trials{ss}));
     rts2 = -log10(data.testRTs{ss}(data.trials{ss}));
-
+    
     out.Comps{ss} = zeros(d1,d2,out.nComps);
-
-        
+    
+    
     % for subject channels
     for c=1:d1
-    	% get the trial by band*bin matrix for each channel.
+        % get the trial by band*bin matrix for each channel.
         xx = squeeze(x(c,:,:));
-
+        
         % PCA
-        [C,S,E]= pca(xx','NumComponents',out.nComps);  
+        [C,S,E]= pca(xx','NumComponents',out.nComps);
         out.Comps{ss}(c,:,:) = C;
         out.Projections(subjChans(c),:,:) = S;
         out.VarExp(subjChans(c),:) = E(1:out.nComps);
@@ -63,17 +64,17 @@ for ss=1:out.nSubjs
         out.CorrTestRTs(subjChans(c),:)  = corr(C,rts2);
         
         % GLMSs
-		out.StudyGLMs{subjChans(c)} = fitglm(C,rts1);
-		out.StudyGLMSChanCompTVal(subjChans(c),:) ...
-			= out.StudyGLMs{subjChans(c)}.Coefficients.tStat(2:out.nComps+1);
-		out.StudyGLMsChanRsquared(subjChans(c))...
-			= out.StudyGLMs{subjChans(c)}.Rsquared.Ordinary;
-
-		out.TestGLMs{subjChans(c)} = fitglm(C,rts2);
-		out.TestGLMSChanCompTVal(subjChans(c),:) ...
-			= out.TestGLMs{subjChans(c)}.Coefficients.tStat(2:out.nComps+1);
-		out.TestGLMsChanRsquared(subjChans(c)) ...
-			= out.TestGLMs{subjChans(c)}.Rsquared.Ordinary;
+        out.StudyGLMs{subjChans(c)} = fitglm(C,rts1);
+        out.StudyGLMSChanCompTVal(subjChans(c),:) ...
+            = out.StudyGLMs{subjChans(c)}.Coefficients.tStat(2:out.nComps+1);
+        out.StudyGLMsChanRsquared(subjChans(c))...
+            = out.StudyGLMs{subjChans(c)}.Rsquared.Ordinary;
+        
+        out.TestGLMs{subjChans(c)} = fitglm(C,rts2);
+        out.TestGLMSChanCompTVal(subjChans(c),:) ...
+            = out.TestGLMs{subjChans(c)}.Coefficients.tStat(2:out.nComps+1);
+        out.TestGLMsChanRsquared(subjChans(c)) ...
+            = out.TestGLMs{subjChans(c)}.Rsquared.Ordinary;
     end
 end
 
@@ -82,7 +83,7 @@ out.GLMsCompsThr        = 1.6;
 out.GLMsCompsKMeans     = 3;
 out.KMeansReplicates    = 100;
 
-% Study
+%% Study
 out.StudyGLMsCompKmeans =[];
 X = out.StudyGLMSChanCompTVal;
 
@@ -101,17 +102,17 @@ out.StudyGLMsCompKmeans.PC       = C;
 out.StudyGLMsCompKmeans.PSUMD    = SUMD;
 out.StudyGLMsCompKmeans.PD       = D;
 
-% Get Tvals for every cluster 
+% Get Tvals for every cluster
 for ii = 1:out.GLMsCompsKMeans
     clcomps = find(IDX==ii); % cluster IDs for each componenent
     clch = ch(clcomps) ;
     clco= co(clcomps);
-     nn = numel(clcomps); 
+    nn = numel(clcomps);
     % create matrix for each cluster
-    Z = zeros(nn,out.nFeat); 
-    for jj = 1:nn         
+    Z = zeros(nn,out.nFeat);
+    for jj = 1:nn
         Z(jj,:) = out.Projections(clch(jj),:,clco(jj));
-    end    
+    end
     [~,p,~,t] = ttest(Z);
     out.StudyGLMsCompKmeans.PT(ii,:) = t.tstat;
     out.StudyGLMsCompKmeans.PP(ii,:) = p;
@@ -132,23 +133,23 @@ out.StudyGLMsCompKmeans.NC       = C;
 out.StudyGLMsCompKmeans.NSUMD    = SUMD;
 out.StudyGLMsCompKmeans.ND       = D;
 
-% Get Tvals for every cluster 
+% Get Tvals for every cluster
 for ii = 1:out.GLMsCompsKMeans
     clcomps = find(IDX==ii); % cluster IDs for each componenent
     clch = ch(clcomps) ;
     clco= co(clcomps);
-     nn = numel(clcomps); 
+    nn = numel(clcomps);
     % create matrix for each cluster
-    Z = zeros(nn,out.nFeat); 
-    for jj = 1:nn         
+    Z = zeros(nn,out.nFeat);
+    for jj = 1:nn
         Z(jj,:) = out.Projections(clch(jj),:,clco(jj));
-    end    
+    end
     [~,p,~,t] = ttest(Z);
     out.StudyGLMsCompKmeans.NT(ii,:) = t.tstat;
     out.StudyGLMsCompKmeans.NP(ii,:) = p;
 end
 
-% Test
+%% Test
 out.TestGLMsCompKmeans =[];
 X = out.TestGLMSChanCompTVal;
 % Test Positive
@@ -165,17 +166,17 @@ out.TestGLMsCompKmeans.PIDX     = IDX;
 out.TestGLMsCompKmeans.PC       = C;
 out.TestGLMsCompKmeans.PSUMD    = SUMD;
 out.TestGLMsCompKmeans.PD       = D;
-% Get Tvals for every cluster 
+% Get Tvals for every cluster
 for ii = 1:out.GLMsCompsKMeans
     clcomps = find(IDX==ii); % cluster IDs for each componenent
     clch = ch(clcomps) ;
     clco= co(clcomps);
-     nn = numel(clcomps); 
+    nn = numel(clcomps);
     % create matrix for each cluster
-    Z = zeros(nn,out.nFeat); 
-    for jj = 1:nn         
+    Z = zeros(nn,out.nFeat);
+    for jj = 1:nn
         Z(jj,:) = out.Projections(clch(jj),:,clco(jj));
-    end    
+    end
     [~,p,~,t] = ttest(Z);
     out.TestGLMsCompKmeans.PT(ii,:) = t.tstat;
     out.TestGLMsCompKmeans.PP(ii,:) = p;
@@ -195,19 +196,72 @@ out.TestGLMsCompKmeans.NIDX      = IDX;
 out.TestGLMsCompKmeans.NC       = C;
 out.TestGLMsCompKmeans.NSUMD    = SUMD;
 out.TestGLMsCompKmeans.ND       = D;
-% Get Tvals for every cluster 
+% Get Tvals for every cluster
 for ii = 1:out.GLMsCompsKMeans
     clcomps = find(IDX==ii); % cluster IDs for each componenent
     clch = ch(clcomps) ;
     clco= co(clcomps);
-     nn = numel(clcomps); 
+    nn = numel(clcomps);
     % create matrix for each cluster
-    Z = zeros(nn,out.nFeat); 
-    for jj = 1:nn         
+    Z = zeros(nn,out.nFeat);
+    for jj = 1:nn
         Z(jj,:) = out.Projections(clch(jj),:,clco(jj));
-    end    
+    end
     [~,p,~,t] = ttest(Z);
     out.TestGLMsCompKmeans.NT(ii,:) = t.tstat;
     out.TestGLMsCompKmeans.NP(ii,:) = p;
 end
+
+%% Get Distribution of Selected components by ROIs
+K       = out.GLMsCompsKMeans;
+rois    = data.ROIid;
+nROIs   = numel(unique(rois));
+
+StudTest    = {'StudyGLMsCompKmeans','TestGLMsCompKmeans'};
+PosNegComp  = {'PosCompIDs','NegCompIDs'};
+PosNegCLID  = {'PIDX','NIDX'};
+
+% components above/below threshold
+comps = cell(2,2); % rows: pos/neg: col: study/test
+out.GLMsThrComps  = [];
+for ii =1:2
+    for jj=1:2
+        comps{ii,jj}=out.(StudTest{ii}).(PosNegComp{jj})(:,1);
+    end
+end
+out.GLMsThrComps.CompsStr = {'+Study','+Test';'-Study','-Test'};
+out.GLMsThrComps.CompIDs = comps;
+
+% Distribution of rois by pos/neg-study/test components.
+Ns = zeros(nROIs,2,2);
+% Distribution of rois by cluster AND pos/neg-study/test components.
+ROIkCompNs = zeros(nROIs,K,2,2);
+for rr=1:nROIs
+    for ii = 1:2
+        for jj = 1:2
+            for kk=1:K
+                cLIDs = out.(StudTest{ii}).(PosNegCLID{jj})==kk;
+                ROIkCompNs(rr,kk,ii,jj) = sum(rois(comps{ii,jj}(cLIDs))==rr);
+            end % clusters
+            Ns(rr,ii,jj)=sum(rois(comps{ii,jj})==rr);
+        end % study/test
+    end % pos/neg
+end % rois
+out.GLMsThrComps.nCompsByCLROI = ROIkCompNs;
+out.GLMsThrComps.nCompsByCLROIDims = {'ROI','K','Study/Test','Pos/Neg'};
+
+
+ROIKCont = zeros(nROIs,K,2,2);
+for kk = 1:K
+    temp    = squeeze(ROIkCompNs(:,kk,:,:))./Ns;
+    tempS   = squeeze(sum(temp));
+    for ii =1:2
+        for jj=1:2
+            ROIKCont(:,kk,ii,jj) = temp(:,ii,jj)/tempS(ii,jj);
+        end
+    end
+end
+out.GLMsThrComps.relContCLROI = ROIKCont;
+
+
 

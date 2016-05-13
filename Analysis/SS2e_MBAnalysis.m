@@ -62,7 +62,7 @@ end
 info.cols            = 'oc';
 info.yticksLabels   = {'\delta','\theta','\alpha','\beta','l-\gamma','h-\gamma'};
 info.thr            = 1;
-info.pThr           = 0.05; % corrected.
+info.pThr           = 0.01; % corrected.
 
 % Analysis 1
 clev = [-4:-1 1:4];
