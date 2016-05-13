@@ -10,9 +10,7 @@ function ha = barPlotWithErrors(M,opts)
 %   yLimits
 %   xPositions
 
-inkscapePath='/Applications/Inkscape.app/Contents/Resources/bin/inkscape';
-
-nBars   = numel(M);
+nBars   = size(M,1);
 m       = zeros(nBars,1);
 se      = zeros(nBars,1);
 
@@ -40,67 +38,55 @@ for ba = 1:nBars
     n = size(X,1);
     [m(ba) se(ba)] = grpstats(X,ones(n,1),{'mean','sem'});
     
-    bar(opts.xPositions(ba),m(ba),1,'FaceColor',opts.colors(ba,:),'edgeColor', 'none', 'basevalue',opts.baseLine,'ShowBaseLine','off')
+    bar(opts.xPositions(ba),m(ba),0.8,'FaceColor',opts.colors(ba,:),'edgeColor', 'none', 'basevalue',opts.baseLine,'ShowBaseLine','off')
     plot([1 1]*opts.xPositions(ba), [-se(ba) se(ba)]+m(ba), 'color',[0 0 0],'linewidth',4)
     
 end
-
-if isfield(opts,'yLimits')
-    ylim(opts.yLimits)
-end
-
-if isfield(opts,'xLimits')
-    xlim(opts.xLimits)
-else
-    xlim([-0.2 nBars+0.2]+0.5)
-end
+ma = max(m+se);
 
 plot(xlim,[opts.baseLine opts.baseLine],'-',...
     'color',[0 0 0],'linewidth',2)
 
-if isfield(opts,'xTicks')
-    set(gca,'XTick',opts.xTicks)
+if isfield(opts,'xTick')
+    set(gca,'xTick',opts.xTick)
 else
-    set(gca,'XTick',[])
+    set(gca,'xTick',[])
 end
-if isfield(opts,'XTickLabel')
-    set(gca, 'XTickLabel',opts.XTickLabel)
+
+if isfield(opts,'xTickLabel')
+    set(gca,'xTickLabel',opts.xTickLabel)
+else
+    set(gca,'xTickLabel',[])
 end
+
 if isfield(opts,'yTicks')
     set(gca,'YTick',opts.yTicks)
 else
     set(gca,'yTick',[])
 end
 
-set(gca,'linewidth',2)
-set(gca,'fontweight','bold')
-set(gca,'fontsize',15);
-
 if isfield(opts,'yLimits')
-    minY = opts.yLimits(1);
-    maxY = opts.yLimits(2);
-    minY = minY + 0.05*abs(minY);
-    ylim([minY maxY]) 
+    ylim(opts.yLimits)
+else        
+    ylim([0 ma*1.25])    
 end
 
-if isfield(opts,'save')
-    if (opts.save==1) && isfield(opts,'fileName') && isfield(opts,'savePath')
-        cPath = pwd;
-        cd(opts.savePath)
-        addpath(cPath)
-        addpath([cPath '/Plotting/'])
-        
-        try
-            fN = strcat(opts.fileName,'.svg');
-            %plot2svg(fN,gcf)
-            print(gcf,'-dsvg',fN)
-            
-            eval(['!' inkscapePath ' -z ' fN ' --export-pdf=' opts.fileName '.pdf'])
-            eval(['!rm ' fN])
-        catch
-            keyboard
-        end
-        cd(cPath)
-    end
+if isfield(opts,'xLimits')
+    xlim(opts.xLimits)
+else
+    xlim([0 nBars]+0.5)
 end
 
+if isfield(opts,'yLabel')
+    ylabel(opts.yLabel)
+end
+if isfield(opts, 'sigMarks')
+    nMarks = size(opts.sigMarks,1);
+    for ii = 1:nMarks
+        ypos = [1 1]*ma*(1+.12*ii);
+        xpos = opts.sigMarks(ii,:);
+        plot(xpos,ypos,'-k','linewidth',2)
+        plot(mean(xpos),ma*(1.04+.12*ii),'*k')
+    end    
+end
+set(gca,'LineWidth',2,'FontSize',18)

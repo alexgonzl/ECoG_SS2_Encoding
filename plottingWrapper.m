@@ -56,13 +56,15 @@ switch figNum
         % GLMs PCA trial Analysis
         opts=[];
         opts.rThr = 0.3;
-        opts.pThr = 0.05;
+        opts.pThr = 0.01;
         opts.tThr = 1;
+        opts.plot1 = 0; opts.plot2 = 1; opts.plot3 = 0;
+        opts.plot4 = 1;
         opts.dataPath = '~/Google Drive/Research/ECoG_SS2e/data_results/';
         lockType     = {'preStim2','stim','RT'};        
         for lt = lockType
             opts.lock = lt{1};
-            opts.savePath = ['~/Google Drive/Research/ECoG_SS2e/Plots/a6/' opts.lock];
+            opts.savePath = ['~/Google Drive/Research/ECoG_SS2e/Plots/a6/' opts.lock '/'];
             if ~exist(opts.savePath,'dir'), mkdir(opts.savePath), end
             GLM_PCAtrialPlots(opts)
         end
@@ -72,6 +74,8 @@ switch figNum
         opts=[];
         opts.tThr = 1.6;
         opts.pThr = 0.01;
+        opts.plot1 = 0; opts.plot2 = 0; opts.plot3 = 0;
+        opts.plot4 = 0; opts.plot5 = 0; opts.plot6 = 1;
         opts.dataPath = '~/Google Drive/Research/ECoG_SS2e/data_results/';
         lockType     = {'preStim2','stim','RT'};
         
