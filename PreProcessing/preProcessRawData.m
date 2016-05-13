@@ -1,4 +1,4 @@
-function data=preProcessRawData(subj)
+function data=preProcessRawData(subj,savePath)
 % function filters the raw data traces and concantenates data blocks for
 % later processing
 %
@@ -30,10 +30,12 @@ data.subjName       = temp.subjName;
 data.blocklist      = temp.blocklist;   blocklist = data.blocklist;
 data.nBlocks        = numel(data.blocklist);
 
-data.paths.dataPath         = ['/Volumes/ECoG_SS2/SS2/data/' data.subjName '/' ];
+%data.paths.dataPath
+data.paths.dataPath         = ['~/Google Drive/Research/ECoG_SS2e/raw_data/' data.subjName '/' ];
 data.paths.behavDataPath    = [data.paths.dataPath 'BehavData/'];
 data.paths.RawDataPath      = [data.paths.dataPath 'RawData/'];
-data.paths.ResultsPath      = ['/Volumes/ECoG_SS2/SS2/SS2e/Results/' data.subjNum '/' ];
+%data.paths.ResultsPath      = ['/Volumes/ECoG_SS2/SS2/SS2e/Results/' data.subjNum '/' ];
+data.paths.ResultsPath      = ['~/Google Drive/Research/ECoG_SS2e/data/' data.subjNum '/' ];
 data.paths.preProRawPath    = [data.paths.ResultsPath 'preProcessed/'];         
 
 load([data.paths.ResultsPath 'BehavResults/behavResults.mat'])
