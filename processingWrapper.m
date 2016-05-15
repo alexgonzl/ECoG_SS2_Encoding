@@ -317,6 +317,15 @@ for s = subjects
     end  
 end
 
+% group subjects.
+
+% opts = []; 
+% opts.nFreq = 30;
+% 
+% for lt = lockType            
+%     opts.lockType = lt{1};
+%     data = groupMultiBandITCData(opts);
+% end
 %% lasso and ridge analysis
 
 %%
@@ -390,7 +399,7 @@ end
 
 %renderChanCortexSS2e(dataPath);
 
-%%
+%
 % calc ITC
 
 % addpath PreProcessing/

@@ -8,7 +8,7 @@ nSamps  = size(signal,2);
 Y = zeros(nChans,maxF,nSamps);
 for ch = 1:nChans
     x = signal(ch,:);
-    parfor ff = 1:maxF
+    for ff = 1:maxF
         Y(ch,ff,:) = filtfilt(B(ff,:),A(ff,:),x);        
     end
     %disp(sprintf('%g of channels filtered',ch/nChans))

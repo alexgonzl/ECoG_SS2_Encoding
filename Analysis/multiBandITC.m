@@ -30,7 +30,7 @@ data.nTrials        = numel(data.trialOnsets);
 epochDur = [-2 2]; % before converting into trials and baseline correcting
 
 % add behavioral data
-data.behavior = data.behavorInfo; % 
+data.behavior = data.behavorInfo; %
 
 % store the corresponding roi channel ids in data struct.
 data.rois       = data.chanInfo;
@@ -40,18 +40,18 @@ data.rois       = data.chanInfo;
 epochTime = linspace(epochDur(1),epochDur(2),ceil(diff(epochDur)*SR)); nEpSamps = numel(epochTime);
 
 % determine the samples that correspond to the specified trial duration
-trialSamps     = epochTime>=dur(1) & epochTime<=dur(2);
-
+trialSamps      = epochTime>=dur(1) & epochTime<=dur(2);
+nTrialSamps     =sum(trialSamps);
 % Determine time samples in the trial
-trialTime      = epochTime(trialSamps); 
+trialTime      = epochTime(trialSamps);
 
 evOnsets = data.trialOnsets; % in samples at downsampled rate
 evOnsets = round(evOnsets/downSampRate);
 nEvents = numel(evOnsets);
-epSamps = floor(epochTime*SR); % epoch time in samples 
+epSamps = floor(epochTime*SR); % epoch time in samples
 evIdx = zeros(nEvents,nEpSamps);
 
-switch  data.lockType    
+switch  data.lockType
     case 'RT'
         offset = floor(data.behavior.studyRTs*SR);
     otherwise
@@ -84,7 +84,7 @@ clear Y;
 
 % decompose and extract phase per channel and frequency
 Ang = zeros(size(Z));
-parfor ch = 1:nChans    
+for ch = 1:nChans
     [~,Ang(ch,:,:)] = multiBandDecomp(squeeze(Z(ch,:,:)));
 end
 clear Z;
@@ -100,8 +100,7 @@ for ch = 1:nChans
 end
 
 % Take relevant samples of trial
-trPh = trPh(:,:,:,trialSamps); 
-
+trPh = trPh(:,:,:,trialSamps);
 
 %% output
 out             = [];
@@ -109,10 +108,81 @@ out.SR          = SR;
 out.nEvents     = nEvents;
 out.trialDur    = dur;
 out.trialTime   = trialTime;
+out.nTrialSamps = nTrialSamps;
 out.trPh        = trPh;
 out.nFreqs      = nFreqs;
 out.behavior    = data.behavorInfo;
 out.rois        = data.rois;
 
+% behavior and conditions
+out.conds{1}         = out.behavior.cond==1  ;  % objective abstract
+out.conds{2}         = out.behavior.cond==2  ;  % objective concrete
+out.conds{3}         = out.behavior.sResp==1 ;  % abstract response
+out.conds{4}         = out.behavior.sResp==2 ;  % concrete response
+out.conds{5}         = out.behavior.tResp<=2 ;  % old response at test
+out.conds{6}         = out.behavior.tResp>=2 ;  % new response at test
+out.conds{7}         = out.behavior.subRem==1; % remembered
+out.conds{8}         = out.behavior.subForg==1; % forgotten
+out.conds{9}         = (out.conds{1} & out.conds{3}) | ...
+    (out.conds{2} & out.conds{4});              % correct semantic desc
+out.conds{10}        = out.conds{9} & out.conds{7}; % correct at study and test
+out.conds{11}        = out.behavior.studyRTs ;
+out.conds{12}        = out.behavior.testRTs ;
+out.conds{13}        = out.conds{7}&~isnan(out.conds{11}); % valid encoding, remembered trials
+
+out.studyIDatTest   = out.behavior.studyIDatTest;
+out.testRTs         = out.behavior.testRTs;
+out.studyRTs        = data.behavior.studyRTs;
+
+out.condOfInterest = 13; %#13: valid encoding. trial that were remembered.
+
+% specific trial analyses
+trials = out.conds{out.condOfInterest} ;
+out.nTrials = sum(trials);
+out.ITC     = abs(squeeze(mean(exp(1j*trPh(:,:,trials,:)),3)));
+out.ITP     = angle(squeeze(mean(exp(1j*trPh(:,:,trials,:)),3)));
+
+out.studyRTsToPhaseCorr = zeros(nChans,nFreqs,nTrialSamps);
+out.testRTsToPhaseCorr  = zeros(nChans,nFreqs,nTrialSamps);
+
+out.studyRTsPhaseGLMsPCA_R2 = zeros(nChans,nFreqs);
+out.testRTsPhaseGLMsPCA_R2  = zeros(nChans,nFreqs);
+out.studyRTsPhaseR2         = zeros(nChans,1);
+out.testRTsPhaseR2          = zeros(nChans,1);
+rts1   = out.studyRTs(trials);
+rts2   = out.testRTs(trials);
+% PCA-GLM approach.
+for ch = 1:nChans
+    for ff = 1:nFreqs
+        alpha = squeeze(trPh(ch,ff,trials,:));
+        out.studyRTsToPhaseCorr(ch,ff,:) = ccorr(rts1,alpha);
+        out.testRTsToPhaseCorr(ch,ff,:)  = ccorr(rts2,alpha);
+        
+        v1=pca(cos(alpha)','NumComponents',12);
+        m=fitglm(v1,rts1);
+        out.studyRTsPhaseGLMsPCA_R2(ch,ff) = m.Rsquared.Ordinary;
+        m=fitglm(v1,rts2);
+        out.testRTsPhaseGLMsPCA_R2(ch,ff) = m.Rsquared.Ordinary;
+    end
+    alpha = squeeze(trPh(ch,:,trials,:));
+    alpha2=permute(alpha,[2 1 3]); alpha2=alpha2(:,:);
+    v1=pca(cos(alpha2)','NumComponents',12);
+    m=fitglm(v1,rts1);
+    out.studyRTsPhaseR2(ch) = m.Rsquared.Ordinary;
+    m=fitglm(v1,rts2);
+    out.testRTsPhaseR2(ch) = m.Rsquared.Ordinary;
+    fprintf(' Analyses for chan %i completed',ch)
+end
+end
+%% aux function
+function r=ccorr(x,alpha)
+nTr = size(x,1); % linear variable
+nSp = size(alpha,2); % circular variable
+
+r = zeros(nSp,1);
+for sa = 1:nSp
+    r(sa) = circ_corrcl(alpha(:,sa),x);
+end
+end
 
 
