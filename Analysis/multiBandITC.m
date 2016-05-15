@@ -2,7 +2,7 @@ function out = multiBandITC(data,opts)
 % function filters signal in single hertz bands epochs and computes the ITC
 % across LPC channels
 
-switch  data.lockType
+switch  opts.lockType
     case 'preStim'
         data.trialDur = [-1 1]; dur = data.trialDur;
     case 'preStim2'
@@ -51,7 +51,7 @@ nEvents = numel(evOnsets);
 epSamps = floor(epochTime*SR); % epoch time in samples
 evIdx = zeros(nEvents,nEpSamps);
 
-switch  data.lockType
+switch  opts.lockType
     case 'RT'
         offset = floor(data.behavior.studyRTs*SR);
     otherwise
@@ -106,6 +106,7 @@ trPh = trPh(:,:,:,trialSamps);
 out             = [];
 out.SR          = SR;
 out.nEvents     = nEvents;
+out.nChans      = nChans;
 out.trialDur    = dur;
 out.trialTime   = trialTime;
 out.nTrialSamps = nTrialSamps;
@@ -113,6 +114,7 @@ out.trPh        = trPh;
 out.nFreqs      = nFreqs;
 out.behavior    = data.behavorInfo;
 out.rois        = data.rois;
+out.RTquant     = [0.4 0.6];
 
 % behavior and conditions
 out.conds{1}         = out.behavior.cond==1  ;  % objective abstract
@@ -136,42 +138,41 @@ out.studyRTs        = data.behavior.studyRTs;
 
 out.condOfInterest = 13; %#13: valid encoding. trial that were remembered.
 
-% specific trial analyses
+% specific trial analyses: ITC/ITP for all trials.
 trials = out.conds{out.condOfInterest} ;
+rts1   = -log10(out.studyRTs(trials));
+rts2   = -log10(out.testRTs(trials));
+
 out.nTrials = sum(trials);
 out.ITC     = abs(squeeze(mean(exp(1j*trPh(:,:,trials,:)),3)));
 out.ITP     = angle(squeeze(mean(exp(1j*trPh(:,:,trials,:)),3)));
 
+% ITC for slow/fast trials
+out.studyRTsQuants = quantile(rts1,out.RTquant);
+out.ITC_studyRTsplit = zeros(nChans,2,nFreqs,nTrialSamps);
+trials_sFS{1} = trials &  (out.studyRTs<=out.studyRTsQuants(1));
+trials_sFS{2} = trials &  (out.studyRTs>=out.studyRTsQuants(2));
+
+out.testRTsQuants = quantile(rts2,out.RTquant);
+out.ITC_testRTsplit = zeros(nChans,2,nFreqs,nTrialSamps);
+trials_tFS{1} = trials & (out.testRTs<=out.testRTsQuants(1));
+trials_tFS{2} = trials & (out.testRTs>=out.testRTsQuants(2));
+for ii = 1:2
+    out.ITC_studyRTsplit(:,ii,:,:) = abs(squeeze(mean(exp(1j*trPh(:,:,trials_sFS{ii},:)),3)));
+    out.ITC_testRTsplit(:,ii,:,:)  = abs(squeeze(mean(exp(1j*trPh(:,:,trials_tFS{ii},:)),3)));
+end
+
+% continous approach. correlate the phase to the rts
 out.studyRTsToPhaseCorr = zeros(nChans,nFreqs,nTrialSamps);
 out.testRTsToPhaseCorr  = zeros(nChans,nFreqs,nTrialSamps);
 
-out.studyRTsPhaseGLMsPCA_R2 = zeros(nChans,nFreqs);
-out.testRTsPhaseGLMsPCA_R2  = zeros(nChans,nFreqs);
-out.studyRTsPhaseR2         = zeros(nChans,1);
-out.testRTsPhaseR2          = zeros(nChans,1);
-rts1   = out.studyRTs(trials);
-rts2   = out.testRTs(trials);
-% PCA-GLM approach.
 for ch = 1:nChans
     for ff = 1:nFreqs
         alpha = squeeze(trPh(ch,ff,trials,:));
         out.studyRTsToPhaseCorr(ch,ff,:) = ccorr(rts1,alpha);
         out.testRTsToPhaseCorr(ch,ff,:)  = ccorr(rts2,alpha);
-        
-        v1=pca(cos(alpha)','NumComponents',12);
-        m=fitglm(v1,rts1);
-        out.studyRTsPhaseGLMsPCA_R2(ch,ff) = m.Rsquared.Ordinary;
-        m=fitglm(v1,rts2);
-        out.testRTsPhaseGLMsPCA_R2(ch,ff) = m.Rsquared.Ordinary;
     end
-    alpha = squeeze(trPh(ch,:,trials,:));
-    alpha2=permute(alpha,[2 1 3]); alpha2=alpha2(:,:);
-    v1=pca(cos(alpha2)','NumComponents',12);
-    m=fitglm(v1,rts1);
-    out.studyRTsPhaseR2(ch) = m.Rsquared.Ordinary;
-    m=fitglm(v1,rts2);
-    out.testRTsPhaseR2(ch) = m.Rsquared.Ordinary;
-    fprintf(' Analyses for chan %i completed',ch)
+    fprintf(' Analyses for chan %i completed \n',ch)
 end
 end
 %% aux function
@@ -180,7 +181,7 @@ nTr = size(x,1); % linear variable
 nSp = size(alpha,2); % circular variable
 
 r = zeros(nSp,1);
-for sa = 1:nSp
+parfor sa = 1:nSp
     r(sa) = circ_corrcl(alpha(:,sa),x);
 end
 end

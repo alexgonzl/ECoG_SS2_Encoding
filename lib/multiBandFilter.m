@@ -6,7 +6,7 @@ nSamps  = size(signal,2);
 [B,A] = singleHZBandPassFilters(maxF,SR);
 
 Y = zeros(nChans,maxF,nSamps);
-for ch = 1:nChans
+parfor ch = 1:nChans
     x = signal(ch,:);
     for ff = 1:maxF
         Y(ch,ff,:) = filtfilt(B(ff,:),A(ff,:),x);        

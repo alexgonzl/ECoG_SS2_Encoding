@@ -293,6 +293,7 @@ end
 addpath PreProcessing/
 addpath Analysis/
 addpath lib/
+addpath lib/CircStats/
 dataPath = '~/Google Drive/Research/ECoG_SS2e/data/';
 
 subjects = {'16b','17b','18','19','24','28','29','30'};
@@ -302,20 +303,28 @@ lockType     = {'preStim2','stim','RT'};
 opts = []; 
 opts.nFreq = 30;
 opts.downsample = 4;
+opts.NumComponents = 12;
 for s = subjects    
     dataIn = load([dataPath s{1} '/preProcessed/data' reference  '.mat']);            
     for lt = lockType            
-        dataIn.data.lockType        = lt{1};            
+        opts.lockType        = lt{1};            
         data = multiBandITC(dataIn.data,opts);
 
         if ~exist([dataPath s{1}  '/ITC_Data/'],'dir');
             mkdir([dataPath s{1}  '/ITC_Data/']);
         end;
         save([dataPath s{1}  '/ITC_Data/multiBandITC_N' num2str(opts.nFreq) '_' ...
-            lt{1} reference '.mat'],'data')
+            lt{1} reference '.mat'],'data')                
         disp(sprintf('processing completed for %s, subj %s',lt{1},s{1}));
-    end  
+        data = multiBandITC_GLMPCA(data,opts);
+        save([dataPath s{1}  '/ITC_Data/multiBandITC_GLMPCA_N' num2str(opts.nFreq) '_' ...
+            lt{1} reference '.mat'],'data')   
+        disp(sprintf('Phase PCA-GLM completed for %s, subj %s',lt{1},s{1}));
+    end      
 end
+%% multiband ITC PCA-GLM
+
+
 
 % group subjects.
 
