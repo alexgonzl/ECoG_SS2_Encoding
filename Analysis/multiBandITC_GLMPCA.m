@@ -20,7 +20,7 @@ out.testRTsPhaseGLMsPCA_R2  = zeros(nChans,nFreqs);
 out.studyRTsPhaseR2         = zeros(nChans,1);
 out.testRTsPhaseR2          = zeros(nChans,1);
 
-rts1   = -lgo10(out.studyRTs(trials));
+rts1   = -log10(out.studyRTs(trials));
 rts2   = -log10(out.testRTs(trials));
 
 for ch = 1:nChans
