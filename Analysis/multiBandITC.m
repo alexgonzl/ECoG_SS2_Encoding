@@ -148,12 +148,12 @@ out.ITC     = abs(squeeze(mean(exp(1j*trPh(:,:,trials,:)),3)));
 out.ITP     = angle(squeeze(mean(exp(1j*trPh(:,:,trials,:)),3)));
 
 % ITC for slow/fast trials
-out.studyRTsQuants = quantile(rts1,out.RTquant);
+out.studyRTsQuants = quantile(out.studyRTs(trials),out.RTquant);
 out.ITC_studyRTsplit = zeros(nChans,2,nFreqs,nTrialSamps);
 trials_sFS{1} = trials &  (out.studyRTs<=out.studyRTsQuants(1));
 trials_sFS{2} = trials &  (out.studyRTs>=out.studyRTsQuants(2));
 
-out.testRTsQuants = quantile(rts2,out.RTquant);
+out.testRTsQuants = quantile(out.testRTs(trials),out.RTquant);
 out.ITC_testRTsplit = zeros(nChans,2,nFreqs,nTrialSamps);
 trials_tFS{1} = trials & (out.testRTs<=out.testRTsQuants(1));
 trials_tFS{2} = trials & (out.testRTs>=out.testRTsQuants(2));

@@ -298,12 +298,11 @@ dataPath = '~/Google Drive/Research/ECoG_SS2e/data/';
 
 subjects = {'16b','17b','18','19','24','28','29','30'};
 reference = 'nonLPCch';
-lockType     = {'preStim2','stim','RT'};
+lockType     = {'stim','RT'};%{'preStim2','stim','RT'};
 
 opts = []; 
 opts.nFreq = 30;
 opts.downsample = 2;
-opts.NumComponents = 12;
 for s = subjects    
     dataIn = load([dataPath s{1} '/preProcessed/data' reference  '.mat']);            
     for lt = lockType            
@@ -315,15 +314,12 @@ for s = subjects
         end;
         save([dataPath s{1}  '/ITC_Data/multiBandITC_N' num2str(opts.nFreq) '_' ...
             lt{1} reference '.mat'],'data')                
-        disp(sprintf('processing completed for %s, subj %s',lt{1},s{1}));
-        data = multiBandITC_GLMPCA(data,opts);
-        save([dataPath s{1}  '/ITC_Data/multiBandITC_GLMPCA_N' num2str(opts.nFreq) '_' ...
-            lt{1} reference '.mat'],'data')   
-        disp(sprintf('Phase PCA-GLM completed for %s, subj %s',lt{1},s{1}));
+        disp(sprintf('processing completed for %s, subj %s',lt{1},s{1}));       
     end      
 end
 
-% modulation index computation using multi bands
+%% ITC GLMS-PCA
+
 addpath PreProcessing/
 addpath Analysis/
 addpath lib/
@@ -334,8 +330,33 @@ subjects = {'16b','17b','18','19','24','28','29','30'};
 reference = 'nonLPCch';
 lockType     = {'preStim2','stim','RT'};
 
-for s = subjects    
-    
+opts = []; 
+opts.nFreq = 30;
+opts.downsample = 2;
+opts.NumComponents = 12;
+for s = subjects        
+    for lt = lockType
+        dataIn = load([dataPath s{1} '/ITC_Data/multiBandITC_N' num2str(opts.nFreq) '_' ...
+            lt{1} reference '.mat']);
+        data = multiBandITC_GLMPCA(dataIn.data,opts);
+        save([dataPath s{1}  '/ITC_Data/multiBandITC_GLMPCA_N' num2str(opts.nFreq) '_' ...
+            lt{1} reference '.mat'],'data')   
+        disp(sprintf('Phase PCA-GLM completed for %s, subj %s',lt{1},s{1}));
+    end
+end
+
+%% modulation index computation using multi bands
+addpath PreProcessing/
+addpath Analysis/
+addpath lib/
+addpath lib/CircStats/
+dataPath = '~/Google Drive/Research/ECoG_SS2e/data/';
+
+subjects = {'16b','17b','18','19','24','28','29','30'};
+reference = 'nonLPCch';
+lockType     = {'preStim2','stim','RT'};
+
+for s = subjects        
     for lt = lockType            
         opts.lockType        = lt{1};            
         ampdata = load([dataPath s{1} '/Spectral_Data/hgam/ERSPshgam' lt{1} 'sublogPower' reference '.mat' ]);                    
@@ -347,24 +368,34 @@ for s = subjects
         end;
         data = calcMI(ampdata,phdata);
         save([dataPath s{1}  '/MI_Data/modIndex_' lt{1} reference '.mat'],'data')                
-        disp(sprintf('processing completed for %s, subj %s',lt{1},s{1}));
-        
+        disp(sprintf('processing completed for %s, subj %s',lt{1},s{1}));        
     end      
 end
 
-%% multiband ITC PCA-GLM
+% Group LPC Phase data
+addpath PreProcessing/
+addpath Analysis/
+addpath lib/
+addpath lib/CircStats/
+dataPath = '~/Google Drive/Research/ECoG_SS2e/data/';
+
+reference = 'nonLPCch';
+lockTypes     = {'preStim2','st im','RT'};
+
+opts = []; 
+opts.subjects = {'16b','17b','18','19','24','28','29','30'};
+opts.nFreq = 30;
+opts.reference = reference;
+opts.dataPath = dataPath;
+
+for lt = lockTypes
+    opts.lockType=lt{1};
+    data = groupPhaseData(opts);
+    save([dataPath  'group/Phase_Data/Phase_' lt{1} reference '.mat'],'data')   
+    disp(sprintf('Phase PCA-GLM completed for %s, subj %s',lt{1},s{1}));
+end
 
 
-
-% group subjects.
-
-% opts = []; 
-% opts.nFreq = 30;
-% 
-% for lt = lockType            
-%     opts.lockType = lt{1};
-%     data = groupMultiBandITCData(opts);
-% end
 %% lasso and ridge analysis
 
 %%
