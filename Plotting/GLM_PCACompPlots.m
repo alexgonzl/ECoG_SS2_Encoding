@@ -10,7 +10,7 @@ pcadat = out; clear out;
 % load electrode locations
 load('~/Google Drive/Research/ECoG_SS2e/data_results/Renderings/electrodeLocs.mat')
 
-tThr    = opts.tThr;
+tThr    = pcadat.GLMsCompsThr;
 freqs   = 1:data.nBands;
 time    = mean(data.Bins(data.AnalysisBins,:),2);
 nFeat   = pcadat.nFeat;
@@ -33,10 +33,11 @@ if opts.plot1
     
     titles = {'StudyRTs','TestRTs'};
     figure(1); clf;
-    set(gcf,'paperpositionmode','auto','color','white')
-    set(gcf,'position',[100,100,800,300]);
-    a{1} = axes('position',[0.1 0.15 0.4 0.7]);
-    a{2} = axes('position',[0.55 0.15 0.4 0.7]);
+    set(gcf,'paperpositionmode','auto','color','white')    
+    set(gcf,'paperUnits','points','papersize',[800 500],'paperposition',[0 0 800 600])
+    set(gcf,'position',[100,100,600,400]);
+    a{1} = axes('position',[0.1 0.2 0.4 0.4]);
+    a{2} = axes('position',[0.55 0.2 0.4 0.4]);
     
     for tt=1:2
         axes(a{tt})
@@ -107,7 +108,7 @@ if opts.plot3
     ChCompIDs{2,1}= pcadat.StudyGLMsCompKmeans.NegCompIDs;
     ChCompIDs{2,2}= pcadat.TestGLMsCompKmeans.NegCompIDs;
     
-    Tthr    = pcadat.GLMsCompsThr;
+    tThr    = pcadat.GLMsCompsThr;
     nBands  = data.nBands;
     
     X = cell(2,2);% rows: pos/neg col: study/test
@@ -176,7 +177,7 @@ end
 % component correlations.
 if opts.plot4
     K = pcadat.GLMsCompsKMeans;
-    Tthr = pcadat.GLMsCompsThr;
+    tThr = pcadat.GLMsCompsThr;
     nBins   = sum(data.AnalysisBins);
     nBands  = data.nBands;
     
@@ -256,8 +257,10 @@ if opts.plot4
 end
 
 %% plot 5: renderings of top components
+
 if opts.plot5
-    
+
+    % level indicates the # of componnents above thr by channel
     % rows: pos/neg col:study/test
     strs = {'PosStudyChRend','PosTestChRend';'NegStudyChRend','NegTestChRend'};
     Weights = [];
@@ -275,7 +278,9 @@ if opts.plot5
             CM =  brewermap(nLevels,'YlGnBu');
         end
         for jj = 1:2
-            han=renderChanWeights(elecLocs,Weights{ii,jj}+1,CM);
+            w = Weights{ii,jj};
+            w(w==0) = nan;
+            han=renderChanWeights(elecLocs,w+1,CM);
             print(han,'-dtiff','-r300', [opts.savePath strs{ii,jj}])
         end
     end
@@ -284,7 +289,6 @@ end
 %% plot 6: same as plot 4 set (spectrograms), with relative contributions by region
 if opts.plot6
     K = pcadat.GLMsCompsKMeans;
-    Tthr = pcadat.GLMsCompsThr;
     nBins   = sum(data.AnalysisBins);
     nBands  = data.nBands;
     
@@ -370,7 +374,7 @@ if opts.plot6
                 singleStackBar(nr,ROIcolors,ybarlim,a{kk,jj,2});
             end
         end
-        p6Name = [str1{ii} 'Clusters2' opts.lock strrep(num2str(opts.pThr),'.','p')];
+        p6Name = [str1{ii} 'Clusters2' opts.lock strrep(num2str(opts.pThr),'.','p') '_tThr' strrep(num2str(tThr),'.','p')];
         print(gcf,'-dtiff','-r300', [opts.savePath p6Name])
     end 
 end

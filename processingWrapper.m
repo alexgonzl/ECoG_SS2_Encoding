@@ -273,6 +273,7 @@ lockType     = {'preStim2','stim','RT'};
 opts                = [];
 opts.hems           = 'all';
 opts.nComps         = 12;
+opts.tThr           = 1.5;
 opts.reference      = 'nonLPCch';
 opts.dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
 for lt = lockType
@@ -285,6 +286,7 @@ for lt = lockType
     
     fileName            = ['PCATrialDecomp-MBAnalysis' extension]; 
     save([opts.dataPath opts.lockType '/' fileName '.mat'],'out')
+
     fprintf('PCA trial decomp completed for %s\n',lt{1})    
 end
 

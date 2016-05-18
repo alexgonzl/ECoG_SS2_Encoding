@@ -53,7 +53,7 @@ switch figNum
         end
         
     case 6
-        % GLMs PCA trial Analysis
+        % GLMs PCA trial Analysis (R^2)
         opts=[];
         opts.rThr = 0.3;
         opts.pThr = 0.01;
@@ -72,10 +72,10 @@ switch figNum
     case 7
         % GLMs PCA components analyses
         opts=[];
-        opts.tThr = 1.6;
+        opts.tThr = 1.5;
         opts.pThr = 0.01;
         opts.plot1 = 0; opts.plot2 = 0; opts.plot3 = 0;
-        opts.plot4 = 0; opts.plot5 = 0; opts.plot6 = 1;
+        opts.plot4 = 0; opts.plot5 = 1; opts.plot6 = 0;
         opts.dataPath = '~/Google Drive/Research/ECoG_SS2e/data_results/';
         lockType     = {'preStim2','stim','RT'};
         

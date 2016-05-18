@@ -79,7 +79,7 @@ for ss=1:out.nSubjs
 end
 
 %% K-Means on the + and - components
-out.GLMsCompsThr        = 1.6;
+out.GLMsCompsThr        = opts.tThr;
 out.GLMsCompsKMeans     = 3;
 out.KMeansReplicates    = 100;
 
