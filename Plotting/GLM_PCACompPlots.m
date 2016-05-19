@@ -306,7 +306,7 @@ if opts.plot6
         end
     end
     
-    titles  = cell(K,2,2);
+    titles  = cxell(K,2,2);
     Ns      = zeros(K,2,2);
     str1 = {'StudyGLMsCompKmeans','TestGLMsCompKmeans'};
     str2 = {'PIDX','NIDX'};
