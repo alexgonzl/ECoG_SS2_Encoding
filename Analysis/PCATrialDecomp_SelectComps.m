@@ -1,4 +1,4 @@
-function out = PCATrialDecomp(data,opts)
+function out = PCATrialDecomp_SelectComps(data,opts)
 % this analysis function finds the principal components for each channel
 % that explains the most variance across channels.
 %
@@ -28,11 +28,11 @@ out.CorrTestRTs     = zeros(out.nChans,out.nComps);
 
 % Pre allocation for GLMs
 out.StudyGLMs       		= cell(out.nChans,1);
-out.StudyGLMSChanCompTVal 	= zeros(out.nChans,out.nComps);
+out.StudyGLMSChanCompTVal 	= nan(out.nChans,out.nComps);
 out.StudyGLMsChanRsquared   = zeros(out.nChans,1);
 
 out.TestGLMs        		= cell(out.nChans,1);
-out.TestGLMSChanCompTVal 	= zeros(out.nChans,out.nComps);
+out.TestGLMSChanCompTVal 	= nan(out.nChans,out.nComps);
 out.TestGLMsChanRsquared    = zeros(out.nChans,1);
 
 for ss=1:out.nSubjs
@@ -41,40 +41,47 @@ for ss=1:out.nSubjs
     x = permute(data.BinERPs{ss}(:,:,:,data.AnalysisBins),[2 3 1 4]);
     % concatenate bands and time bins
     x = x(:,:,:);
-    [d1,d2,~] = size(x); % d1 -> n subj channels, d2 -> # of trials, d3 -> bands*timebins
+    [nSubjChan,nSubjTrials,~] = size(x); % d1 -> n subj channels, d2 -> # of trials, d3 -> bands*timebins
     rts1 = -log10(data.studyRTs{ss}(data.trials{ss}));
     rts2 = -log10(data.testRTs{ss}(data.trials{ss}));
     
-    out.Comps{ss} = zeros(d1,d2,out.nComps);
+    out.Comps{ss} = zeros(nSubjChan,nSubjTrials,out.nComps);
     
     
     % for subject channels
-    for c=1:d1
+    for c=1:nSubjChan
         % get the trial by band*bin matrix for each channel.
         xx = squeeze(x(c,:,:));
         
         % PCA
-        [C,S,E]= pca(xx','NumComponents',out.nComps);
+        [C,S,~,~,E]= pca(xx','NumComponents',out.nComps);
         out.Comps{ss}(c,:,:) = C;
         out.Projections(subjChans(c),:,:) = S;
         out.VarExp(subjChans(c),:) = E(1:out.nComps);
         
         % Correlations
-        out.CorrStudyRTs(subjChans(c),:) = corr(C,rts1);
-        out.CorrTestRTs(subjChans(c),:)  = corr(C,rts2);
+        r1 = corr(C,rts1,'type','spearman');
+        r2 = corr(C,rts2,'type','spearman');
+        out.CorrStudyRTs(subjChans(c),:) = r1;
+        out.CorrTestRTs(subjChans(c),:)  = r2;
+        
+        CompsIdx1 = find(abs(r1)>=opts.rThr);
+        out.StudySelectedComps{subjChans(c)} = CompsIdx1;
+        CompsIdx2 = find(abs(r2)>=opts.rThr);
+        out.TestSelectedComps{subjChans(c)} = CompsIdx2;
         
         % GLMSs
-        out.StudyGLMs{subjChans(c)} = fitglm(C,rts1);
-        out.StudyGLMSChanCompTVal(subjChans(c),:) ...
-            = out.StudyGLMs{subjChans(c)}.Coefficients.tStat(2:out.nComps+1);
+        out.StudyGLMs{subjChans(c)} = fitglm(C(:,CompsIdx1),rts1);
+        out.StudyGLMSChanCompTVal(subjChans(c),CompsIdx1) ...
+            = out.StudyGLMs{subjChans(c)}.Coefficients.tStat(2:end);
         out.StudyGLMsChanRsquared(subjChans(c))...
             = out.StudyGLMs{subjChans(c)}.Rsquared.Ordinary;
         out.StudyGLMsChanRsquaredA(subjChans(c)) = ...
             out.StudyGLMs{subjChans(c)}.Rsquared.Adjusted;
         
-        out.TestGLMs{subjChans(c)} = fitglm(C,rts2);
-        out.TestGLMSChanCompTVal(subjChans(c),:) ...
-            = out.TestGLMs{subjChans(c)}.Coefficients.tStat(2:out.nComps+1);
+        out.TestGLMs{subjChans(c)} = fitglm(C(:,CompsIdx2),rts2);
+        out.TestGLMSChanCompTVal(subjChans(c),CompsIdx2) ...
+            = out.TestGLMs{subjChans(c)}.Coefficients.tStat(2:end);
         out.TestGLMsChanRsquared(subjChans(c)) ...
             = out.TestGLMs{subjChans(c)}.Rsquared.Ordinary;
         out.TestGLMsChanRsquaredA(subjChans(c)) = ...

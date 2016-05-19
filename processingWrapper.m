@@ -272,8 +272,8 @@ lockType     = {'preStim2','stim','RT'};
 
 opts                = [];
 opts.hems           = 'all';
-opts.nComps         = 12;
-opts.tThr           = 1.5;
+opts.nComps         = 15;
+opts.rThr           = 0.1;
 opts.reference      = 'nonLPCch';
 opts.dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
 for lt = lockType
@@ -282,7 +282,8 @@ for lt = lockType
     fileName            = [opts.hems 'MBAnalysis' extension];
     load([opts.dataPath opts.lockType '/' fileName '.mat'])
     
-    out     = PCATrialDecomp(data,opts);
+    %out     = PCATrialDecomp(data,opts);
+    out = PCATrialDecomp_SelectComps(data,opts)
     
     fileName            = ['PCATrialDecomp-MBAnalysis' extension]; 
     save([opts.dataPath opts.lockType '/' fileName '.mat'],'out')
