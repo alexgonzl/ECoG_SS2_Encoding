@@ -266,6 +266,8 @@ save([dataPath fileName '.mat'],'elecLocs');
 %% PCA trial analysis
 addpath Analysis/
 addpath lib/
+addpath lib/rpca/
+addpath lib/rpca/PROPACK/
 
 %lockType     = {'preStim2','stim','RT'};
 lockType     = {'preStim2','stim','RT'};

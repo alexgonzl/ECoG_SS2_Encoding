@@ -95,8 +95,7 @@ for ss = 1:nSubjs
      % load MI data
     dataIn = load([opts.dataPath subjects{ss} '/MI_Data/' fileName3 ]);
 
-    
-    gitfor ff = 1:numel(miFields)
+    for ff = 1:numel(miFields)
         data.(miFields{ff})     = cat(1,data.(miFields{ff}),dataIn.data.(miFields{ff}));
     end
     % get additional info

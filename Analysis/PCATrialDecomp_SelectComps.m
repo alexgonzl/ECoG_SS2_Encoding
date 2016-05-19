@@ -27,13 +27,17 @@ out.CorrStudyRTs    = zeros(out.nChans,out.nComps);
 out.CorrTestRTs     = zeros(out.nChans,out.nComps);
 
 % Pre allocation for GLMs
+out.StudySelectedComps      = cell(out.nChans,1);
 out.StudyGLMs       		= cell(out.nChans,1);
 out.StudyGLMSChanCompTVal 	= nan(out.nChans,out.nComps);
-out.StudyGLMsChanRsquared   = zeros(out.nChans,1);
+out.StudyGLMsChanR2         = zeros(out.nChans,1);
+out.StudyGLMsChanAR2         = zeros(out.nChans,1);
 
+out.TestSelectedComps       = cell(out.nChans,1);
 out.TestGLMs        		= cell(out.nChans,1);
 out.TestGLMSChanCompTVal 	= nan(out.nChans,out.nComps);
-out.TestGLMsChanRsquared    = zeros(out.nChans,1);
+out.TestGLMsChanR2          = zeros(out.nChans,1);
+out.TestGLMsChanAR2         = zeros(out.nChans,1);
 
 for ss=1:out.nSubjs
     subjChans = find(data.subjChans==ss);
@@ -53,8 +57,10 @@ for ss=1:out.nSubjs
         % get the trial by band*bin matrix for each channel.
         xx = squeeze(x(c,:,:));
         
+        % Robust PCA to denoise; 
+        A = inexact_alm_rpca(xx,0.2);
         % PCA
-        [C,S,~,~,E]= pca(xx','NumComponents',out.nComps);
+        [C,S,~,~,E]= pca(A','NumComponents',out.nComps);
         out.Comps{ss}(c,:,:) = C;
         out.Projections(subjChans(c),:,:) = S;
         out.VarExp(subjChans(c),:) = E(1:out.nComps);
@@ -74,23 +80,22 @@ for ss=1:out.nSubjs
         out.StudyGLMs{subjChans(c)} = fitglm(C(:,CompsIdx1),rts1);
         out.StudyGLMSChanCompTVal(subjChans(c),CompsIdx1) ...
             = out.StudyGLMs{subjChans(c)}.Coefficients.tStat(2:end);
-        out.StudyGLMsChanRsquared(subjChans(c))...
+        out.StudyGLMsChanR2(subjChans(c))...
             = out.StudyGLMs{subjChans(c)}.Rsquared.Ordinary;
-        out.StudyGLMsChanRsquaredA(subjChans(c)) = ...
+        out.StudyGLMsChanAR2(subjChans(c)) = ...
             out.StudyGLMs{subjChans(c)}.Rsquared.Adjusted;
         
         out.TestGLMs{subjChans(c)} = fitglm(C(:,CompsIdx2),rts2);
         out.TestGLMSChanCompTVal(subjChans(c),CompsIdx2) ...
             = out.TestGLMs{subjChans(c)}.Coefficients.tStat(2:end);
-        out.TestGLMsChanRsquared(subjChans(c)) ...
+        out.TestGLMsChanR2(subjChans(c)) ...
             = out.TestGLMs{subjChans(c)}.Rsquared.Ordinary;
-        out.TestGLMsChanRsquaredA(subjChans(c)) = ...
+        out.TestGLMsChanAR2(subjChans(c)) = ...
             out.TestGLMs{subjChans(c)}.Rsquared.Adjusted;
     end
 end
 
 %% K-Means on the + and - components
-out.GLMsCompsThr        = opts.tThr;
 out.GLMsCompsKMeans     = 3;
 out.KMeansReplicates    = 100;
 
@@ -99,7 +104,7 @@ out.StudyGLMsCompKmeans =[];
 X = out.StudyGLMSChanCompTVal;
 
 % Study Positive
-[ch,co] = find(X>out.GLMsCompsThr);
+[ch,co] = find(X>0);
 out.StudyGLMsCompKmeans.PosCompIDs = [ch,co];
 nPosComps = numel(ch);
 Y = zeros(nPosComps,out.nFeat);
@@ -130,7 +135,7 @@ for ii = 1:out.GLMsCompsKMeans
 end
 
 % Study Negative
-[ch,co] = find(X<-out.GLMsCompsThr);
+[ch,co] = find(X<0);
 out.StudyGLMsCompKmeans.NegCompIDs = [ch,co];
 nNegComps = numel(ch);
 Y = zeros(nNegComps,out.nFeat);
