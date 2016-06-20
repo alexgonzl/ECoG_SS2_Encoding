@@ -1,47 +1,48 @@
-
 function GLM_PCAtrialPlots(opts)
 
 % load data and PCA results
 fileName = ['allMBAnalysis' opts.lock 'sublogPowernonLPCch'];
 load([opts.dataPath opts.lock '/' fileName '.mat'])
-fileName = ['PCATrialDecomp-MBAnalysis' opts.lock 'sublogPowernonLPCch'];
+fileName = ['PCATrialDecomp-MBAnalysis2' opts.lock 'sublogPowernonLPCch'];
 load([opts.dataPath opts.lock '/' fileName '.mat'])
 pcadat = out; clear out;
 % load electrode locations
 load('~/Google Drive/Research/ECoG_SS2e/data_results/Renderings/electrodeLocs.mat')
 
-delta = 5;
-levels   = 0:delta:75;
+deltas    = round(linspace(4,8,14));
+levels    = [0 cumsum(deltas)];
+barWidths = [deltas(1) deltas]-1;
 nLevels = numel(levels);
-CM      =  brewermap(nLevels,'YlOrRd');
+CM      =  flipud(brewermap(nLevels,'YlOrRd'));
 ROIcolors = [240 35 17; 2 93 140;122 179 23]/255;  
 rois = data.ROIid;
 
 %% plot 1. R2 correlations histograms
 if opts.plot1
-    p1Name = ['GLM_PCA-R2_' opts.lock '_rThr' strrep(num2str(opts.rThr),'.','p')];
+    %p1Name = ['GLM_PCA-R2_' opts.lock '_rThr' strrep(num2str(opts.rThr),'.','p')];
+    p1Name = ['GLM_PCA-R2_' opts.lock];
     x=[];
-    x{1} = pcadat.StudyGLMsChanRsquared;
-    x{2} = pcadat.TestGLMsChanRsquared;
+    x{1} = pcadat.StudyGLMsChanR2;
+    x{2} = pcadat.TestGLMsChanR2;
     
     titles = {'StudyRTs','TestRTs'};
-    figure(1); clf;
-    set(gcf,'paperpositionmode','auto','color','white')
-    set(gcf,'position',[100,100,600,200]);
-    a{1} = axes('position',[0.1 0.15 0.4 0.7]);
-    a{2} = axes('position',[0.55 0.15 0.4 0.7]);
+    figure(1); clf;    
+    set(gcf,'paperpositionmode','auto','color','white')    
+    set(gcf,'paperUnits','points','papersize',[600 400],'paperposition',[0 0 600 400])
+    set(gcf,'position',[100,100,600,400]);
+    a = axes('position',[0.2 0.2 0.6 0.4]);    
     
     for tt=1:2
-        axes(a{tt})
+        cla; axes(a); 
         ylim([-1 40]);
-        xlim([0 95])
+        xlim([-5 95])
         [barHeight,corrBin]=hist(x{tt}*100,levels);
         nCorrBins = numel(corrBin);
         
         hold on;
         for bb = 1:nCorrBins
             if barHeight(bb)>0
-                b=bar(corrBin(bb),barHeight(bb),4,...
+                b=bar(corrBin(bb),barHeight(bb),barWidths(bb),...
                     'edgecolor','k','faceColor',CM(corrBin(bb)==levels,:));
                 b.BaseLine.Color='none';
                 if corrBin(bb)>=opts.rThr
@@ -54,50 +55,53 @@ if opts.plot1
         set(gca,'fontsize',20,'xTick',[0 30 60 90])
         set(gca,'linewidth',2)
         xlabel(' R^2 ')
-        if tt==1        
-            ylabel(' nChans ')
-        elseif tt==2
-            set(gca,'yticklabel',[])
-        end
-        title(titles{tt})
-    end
-    print(gcf,'-dpdf', [opts.savePath p1Name ])
+        ylabel(' nChans ')
+%         if tt==1        
+%             ylabel(' nChans ')
+%         elseif tt==2
+%             set(gca,'yticklabel',[])
+%         end
+        %title(titles{tt})
+        print(gcf,'-dpdf', [opts.savePath titles{tt} p1Name ])
+    end    
     
 end
 %% plot2 pcs correlations between study and test
 if opts.plot2
-    p2Name = ['GLM_PCA-R2_studytestCorr' opts.lock '_rThr' strrep(num2str(opts.rThr),'.','p')];
+    %p2Name = ['GLM_PCA-R2_studytestCorr' opts.lock '_rThr' strrep(num2str(opts.rThr),'.','p')];
+    p2Name = ['GLM_PCA-R2_studytestCorr' opts.lock];
     
     figure(2); clf;
-    x =  pcadat.StudyGLMsChanRsquared;
-    y =  pcadat.TestGLMsChanRsquared;
-    
+    x =  pcadat.StudyGLMsChanR2*100;
+    y =  pcadat.TestGLMsChanR2*100;
     set(gcf,'paperpositionmode','auto','color','white')
-    set(gcf,'position',[100,100,500,400]); hold on;
-    
+    set(gcf,'paperUnits','points','papersize',[400 400],'paperposition',[0 0 400 400])
+    set(gcf,'position',[100,100,400,400]); hold on;
+
     nChans = numel(x);
-    xlim([0 0.8])
-    ylim([0 0.8])
-    plot([0 0.7],[0 0.7], '--k','linewidth',2)
+    xlim([0 80])
+    ylim([0 80])
+    plot([0 80],[0 80], '--k','linewidth',2)
     for ch = 1:nChans 
         s=scatter(x(ch),y(ch),'o');
         s.MarkerFaceAlpha=0.6;
-        s.MarkerEdgeAlpha=0.6;
-        s.SizeData = 100;
+        s.MarkerEdgeAlpha=0;
+        s.SizeData = 150;
         s.MarkerEdgeColor = ROIcolors(rois(ch),:);
         s.MarkerFaceColor = ROIcolors(rois(ch),:);
     end
     
-    set(gca,'fontsize',20,'xTick',[ 0 opts.rThr 0.6],'yTick',[ 0 opts.rThr 0.6])
+    set(gca,'fontsize',20,'xTick',[0:20:80],'yTick',[0:20:80])
     set(gca, 'linewidth',2)
 %    pfit = polyfit(x,y,1);
 %     p=plot([0.1 0.7],[pfit(1)*0.1 pfit(1)*0.7]+pfit(2));
 %     p.Color = [0.45 0.75 0.9]/1.5;
 %     p.LineWidth=4;
-    r = round(100*corr(x,y,'type','spearman'))/100;
-    text(0.2,0.6,sprintf('R=%0.2f',r),'fontsize',20)
+    r = corr(x,y,'type','spearman','rows','complete');
+    text(20,70,sprintf('R=%0.2f',r),'fontsize',20)
     xlabel('Study (R^2)')
     ylabel('Test (R^2)')
+    axis square
     
     print(gcf,'-dpdf', [opts.savePath p2Name ])
 end
@@ -108,22 +112,24 @@ if opts.plot3
     p3bName = ['GLM_PCA-R2_testRender'];
         
     % study
-    x       =  quant(pcadat.StudyGLMsChanRsquared*100,delta);
-    Weights = ones(size(x));
-    for ii = 1:nLevels
-        chans = x==levels(ii);
-        Weights(chans) = ii;
-    end
+    %x       =  quant(pcadat.StudyGLMsChanR2*100,delta);
+    [~,Weights]=histc(pcadat.StudyGLMsChanR2*100,levels);
+    %Weights = ones(size(x));
+%     for ii = 1:nLevels
+%         chans = x==levels(ii);
+%         Weights(chans) = ii;
+%     end
     han=renderChanWeights(elecLocs,Weights,CM);
     print(han,'-dtiff','-r300', [opts.savePath p3aName])
     
     % test
-    x  =  quant(pcadat.TestGLMsChanRsquared*100,delta);
-    Weights = zeros(size(x));
-    for ii = 1:nLevels
-        chans = x==levels(ii);
-        Weights(chans) = ii;
-    end
+%     x  =  quant(pcadat.TestGLMsChanR2*100,delta);
+%     Weights = zeros(size(x));
+%     for ii = 1:nLevels
+%         chans = x==levels(ii);
+%         Weights(chans) = ii;
+%     end
+    [~,Weights]=histc(pcadat.TestGLMsChanR2*100,levels);
     han=renderChanWeights(elecLocs,Weights,CM);
     print(han,'-dtiff','-r300', [opts.savePath p3bName])
 end
@@ -143,7 +149,7 @@ if opts.plot4
     p4aName = ['StudyGLM_PCA-R2_ROIs'];
     p4bName = ['TestGLM_PCA-R2_ROIs'];
     nROIs = 3;
-    x =  pcadat.StudyGLMsChanRsquared*100;
+    x =  pcadat.StudyGLMsChanR2*100;
     M = cell(nROIs,1);    
     for rr = 1:nROIs
         M{rr} = x(rois==rr);
@@ -151,17 +157,27 @@ if opts.plot4
     temp = cellTStatWrapper(M);
     opts2.sigMarks      = temp.Combs(temp.biVariateP<0.05,:);
     
-    han=barPlotWithErrors(M,opts2);
+    han=barPlotWithErrors(M,opts2);            
+    set(han,'paperpositionmode','auto','color','white')    
+    set(han,'paperUnits','points','papersize',[300 200],'paperposition',[0 0 300 200])
+    set(han,'position',[100,100,300,200]);
+
     print(han,'-dpdf', [opts.savePath p4aName])
     
-    x =  pcadat.TestGLMsChanRsquared*100;
+    x =  pcadat.TestGLMsChanR2*100;
     M = cell(nROIs,1);    
     for rr = 1:nROIs
         M{rr} = x(rois==rr);
     end
     temp = cellTStatWrapper(M);
-    opts2.sigMarks      = temp.Combs(temp.biVariateP<0.05,:);
+    opts2.sigMarks      = temp.Combs(temp.biVariateP<0.1,:);
+    opts2.sigLevel      = temp.biVariateP;
+    
     han=barPlotWithErrors(M,opts2);
+    set(han,'paperpositionmode','auto','color','white')    
+    set(han,'paperUnits','points','papersize',[300 200],'paperposition',[0 0 300 200])
+    set(han,'position',[100,100,300,200]);
+
     print(han,'-dpdf', [opts.savePath p4bName])
 end
 

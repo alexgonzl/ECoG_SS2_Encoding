@@ -30,7 +30,7 @@ loc_view(view{1}(1),view{1}(2))
 chans = find(elecLocs.hemChans==1);
 el_add(elecLocs.MNILocs(chans,:),'k',40) 
 for cc = 1:numel(chans)
-    if ~isnan(Weights(chans(cc)))
+    if ~isnan(Weights(chans(cc))) && Weights(chans(cc))~=0
         el_add(elecLocs.MNILocs(chans(cc),:),CM(Weights(chans(cc)),:),35);
     end
 end
@@ -42,7 +42,7 @@ loc_view(view{2}(1),view{2}(2))
 chans = find(elecLocs.hemChans==2);
 el_add(elecLocs.MNILocs(chans,:),'k',40) 
 for cc = 1:numel(chans)
-    if ~isnan(Weights(chans(cc)))
+    if ~isnan(Weights(chans(cc)))&& Weights(chans(cc))~=0
         el_add(elecLocs.MNILocs(chans(cc),:),CM(Weights(chans(cc)),:),35);
     end
 end

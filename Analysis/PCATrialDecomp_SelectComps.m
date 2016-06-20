@@ -1,6 +1,6 @@
 function out = PCATrialDecomp_SelectComps(data,opts)
 % this analysis function finds the principal components for each channel
-% that explains the most variance across channels.
+% that explains the most variance across trials.
 %
 % it also uses these components to
 %
@@ -9,13 +9,13 @@ function out = PCATrialDecomp_SelectComps(data,opts)
 %
 % data input must be from the groupLPCDataMultiband.
 
-% fix random seed for stability of clusters.
-rng(1);
 out                 = [];
 out.nSubjs 			= size(data.BinERPs,1);
 out.nComps 			= opts.nComps;
 out.nChans 			= data.nChans;
 out.nFeat           = data.nBands*sum(data.AnalysisBins);
+out.ROIs            = data.ROIid; rois =data.ROIid;
+out.nROIs           = numel(unique(data.ROIid));
 
 % Pre allocation for outputs from PCA
 out.Comps           = cell(out.nSubjs,1);
@@ -30,14 +30,14 @@ out.CorrTestRTs     = zeros(out.nChans,out.nComps);
 out.StudySelectedComps      = cell(out.nChans,1);
 out.StudyGLMs       		= cell(out.nChans,1);
 out.StudyGLMSChanCompTVal 	= nan(out.nChans,out.nComps);
-out.StudyGLMsChanR2         = zeros(out.nChans,1);
-out.StudyGLMsChanAR2         = zeros(out.nChans,1);
+out.StudyGLMsChanR2         = nan(out.nChans,1);
+out.StudyGLMsChanAR2         = nan(out.nChans,1);
 
 out.TestSelectedComps       = cell(out.nChans,1);
 out.TestGLMs        		= cell(out.nChans,1);
 out.TestGLMSChanCompTVal 	= nan(out.nChans,out.nComps);
-out.TestGLMsChanR2          = zeros(out.nChans,1);
-out.TestGLMsChanAR2         = zeros(out.nChans,1);
+out.TestGLMsChanR2          = nan(out.nChans,1);
+out.TestGLMsChanAR2         = nan(out.nChans,1);
 
 for ss=1:out.nSubjs
     subjChans = find(data.subjChans==ss);
@@ -46,8 +46,10 @@ for ss=1:out.nSubjs
     % concatenate bands and time bins
     x = x(:,:,:);
     [nSubjChan,nSubjTrials,~] = size(x); % d1 -> n subj channels, d2 -> # of trials, d3 -> bands*timebins
-    rts1 = -log10(data.studyRTs{ss}(data.trials{ss}));
-    rts2 = -log10(data.testRTs{ss}(data.trials{ss}));
+    out.sRTs{ss} = data.studyRTs{ss}(data.trials{ss});
+    out.tRTs{ss} = data.testRTs{ss}(data.trials{ss});
+    rts1 = -log10(out.sRTs{ss});
+    rts2 = -log10(out.tRTs{ss});
     
     out.Comps{ss} = zeros(nSubjChan,nSubjTrials,out.nComps);
     
@@ -55,21 +57,24 @@ for ss=1:out.nSubjs
     % for subject channels
     for c=1:nSubjChan
         % get the trial by band*bin matrix for each channel.
-        xx = squeeze(x(c,:,:));
+        A = squeeze(x(c,:,:));
         
-        % Robust PCA to denoise; 
-        A = inexact_alm_rpca(xx,0.2);
         % PCA
-        [C,S,~,~,E]= pca(A','NumComponents',out.nComps);
+        [C,S,~,~,E]= pca(A','NumComponents',out.nComps,'Centered',false);
+        % correct for sign (based on inner product of residuals
+        [C,S] = getCompSign(C,S);
+        
         out.Comps{ss}(c,:,:) = C;
         out.Projections(subjChans(c),:,:) = S;
         out.VarExp(subjChans(c),:) = E(1:out.nComps);
         
         % Correlations
-        r1 = corr(C,rts1,'type','spearman');
-        r2 = corr(C,rts2,'type','spearman');
+        [r1,p1] = corr(C,rts1,'type','spearman');
+        [r2,p2] = corr(C,rts2,'type','spearman');
         out.CorrStudyRTs(subjChans(c),:) = r1;
         out.CorrTestRTs(subjChans(c),:)  = r2;
+        out.CorrStudyRTsP(subjChans(c),:) = p1;
+        out.CorrTestRTsP(subjChans(c),:)  = p2;
         
         CompsIdx1 = find(abs(r1)>=opts.rThr);
         out.StudySelectedComps{subjChans(c)} = CompsIdx1;
@@ -77,207 +82,218 @@ for ss=1:out.nSubjs
         out.TestSelectedComps{subjChans(c)} = CompsIdx2;
         
         % GLMSs
-        out.StudyGLMs{subjChans(c)} = fitglm(C(:,CompsIdx1),rts1);
-        out.StudyGLMSChanCompTVal(subjChans(c),CompsIdx1) ...
-            = out.StudyGLMs{subjChans(c)}.Coefficients.tStat(2:end);
-        out.StudyGLMsChanR2(subjChans(c))...
-            = out.StudyGLMs{subjChans(c)}.Rsquared.Ordinary;
-        out.StudyGLMsChanAR2(subjChans(c)) = ...
-            out.StudyGLMs{subjChans(c)}.Rsquared.Adjusted;
-        
-        out.TestGLMs{subjChans(c)} = fitglm(C(:,CompsIdx2),rts2);
-        out.TestGLMSChanCompTVal(subjChans(c),CompsIdx2) ...
-            = out.TestGLMs{subjChans(c)}.Coefficients.tStat(2:end);
-        out.TestGLMsChanR2(subjChans(c)) ...
-            = out.TestGLMs{subjChans(c)}.Rsquared.Ordinary;
-        out.TestGLMsChanAR2(subjChans(c)) = ...
-            out.TestGLMs{subjChans(c)}.Rsquared.Adjusted;
-    end
-end
-
-%% K-Means on the + and - components
-out.GLMsCompsKMeans     = 3;
-out.KMeansReplicates    = 100;
-
-%% Study
-out.StudyGLMsCompKmeans =[];
-X = out.StudyGLMSChanCompTVal;
-
-% Study Positive
-[ch,co] = find(X>0);
-out.StudyGLMsCompKmeans.PosCompIDs = [ch,co];
-nPosComps = numel(ch);
-Y = zeros(nPosComps,out.nFeat);
-for ii = 1:nPosComps
-    Y(ii,:) = out.Projections(ch(ii),:,co(ii));
-end
-[IDX, C, SUMD, D] =...
-    kmeans(Y, out.GLMsCompsKMeans,'replicates',out.KMeansReplicates,'distance','correlation');
-out.StudyGLMsCompKmeans.PIDX     = IDX;
-out.StudyGLMsCompKmeans.PC       = C;
-out.StudyGLMsCompKmeans.PSUMD    = SUMD;
-out.StudyGLMsCompKmeans.PD       = D;
-
-% Get Tvals for every cluster
-for ii = 1:out.GLMsCompsKMeans
-    clcomps = find(IDX==ii); % cluster IDs for each componenent
-    clch = ch(clcomps) ;
-    clco= co(clcomps);
-    nn = numel(clcomps);
-    % create matrix for each cluster
-    Z = zeros(nn,out.nFeat);
-    for jj = 1:nn
-        Z(jj,:) = out.Projections(clch(jj),:,clco(jj));
-    end
-    [~,p,~,t] = ttest(Z);
-    out.StudyGLMsCompKmeans.PT(ii,:) = t.tstat;
-    out.StudyGLMsCompKmeans.PP(ii,:) = p;
-end
-
-% Study Negative
-[ch,co] = find(X<0);
-out.StudyGLMsCompKmeans.NegCompIDs = [ch,co];
-nNegComps = numel(ch);
-Y = zeros(nNegComps,out.nFeat);
-for ii = 1:nNegComps
-    Y(ii,:) = out.Projections(ch(ii),:,co(ii));
-end
-[IDX, C, SUMD, D] =...
-    kmeans(Y, out.GLMsCompsKMeans,'replicates',out.KMeansReplicates,'distance','correlation');
-out.StudyGLMsCompKmeans.NIDX     = IDX;
-out.StudyGLMsCompKmeans.NC       = C;
-out.StudyGLMsCompKmeans.NSUMD    = SUMD;
-out.StudyGLMsCompKmeans.ND       = D;
-
-% Get Tvals for every cluster
-for ii = 1:out.GLMsCompsKMeans
-    clcomps = find(IDX==ii); % cluster IDs for each componenent
-    clch = ch(clcomps) ;
-    clco= co(clcomps);
-    nn = numel(clcomps);
-    % create matrix for each cluster
-    Z = zeros(nn,out.nFeat);
-    for jj = 1:nn
-        Z(jj,:) = out.Projections(clch(jj),:,clco(jj));
-    end
-    [~,p,~,t] = ttest(Z);
-    out.StudyGLMsCompKmeans.NT(ii,:) = t.tstat;
-    out.StudyGLMsCompKmeans.NP(ii,:) = p;
-end
-
-%% Test
-out.TestGLMsCompKmeans =[];
-X = out.TestGLMSChanCompTVal;
-% Test Positive
-[ch,co] = find(X>out.GLMsCompsThr);
-out.TestGLMsCompKmeans.PosCompIDs = [ch,co];
-nPosComps = numel(ch);
-Y = zeros(nPosComps,out.nFeat);
-for ii = 1:nPosComps
-    Y(ii,:) = out.Projections(ch(ii),:,co(ii));
-end
-[IDX, C, SUMD, D] =...
-    kmeans(Y, out.GLMsCompsKMeans,'replicates',out.KMeansReplicates,'distance','correlation');
-out.TestGLMsCompKmeans.PIDX     = IDX;
-out.TestGLMsCompKmeans.PC       = C;
-out.TestGLMsCompKmeans.PSUMD    = SUMD;
-out.TestGLMsCompKmeans.PD       = D;
-% Get Tvals for every cluster
-for ii = 1:out.GLMsCompsKMeans
-    clcomps = find(IDX==ii); % cluster IDs for each componenent
-    clch = ch(clcomps) ;
-    clco= co(clcomps);
-    nn = numel(clcomps);
-    % create matrix for each cluster
-    Z = zeros(nn,out.nFeat);
-    for jj = 1:nn
-        Z(jj,:) = out.Projections(clch(jj),:,clco(jj));
-    end
-    [~,p,~,t] = ttest(Z);
-    out.TestGLMsCompKmeans.PT(ii,:) = t.tstat;
-    out.TestGLMsCompKmeans.PP(ii,:) = p;
-end
-
-% Test Negative
-[ch,co] = find(X<-out.GLMsCompsThr);
-out.TestGLMsCompKmeans.NegCompIDs = [ch,co];
-nNegComps = numel(ch);
-Y = zeros(nNegComps,out.nFeat);
-for ii = 1:nNegComps
-    Y(ii,:) = out.Projections(ch(ii),:,co(ii));
-end
-[IDX, C, SUMD, D] =...
-    kmeans(Y, out.GLMsCompsKMeans,'replicates',out.KMeansReplicates,'distance','correlation');
-out.TestGLMsCompKmeans.NIDX      = IDX;
-out.TestGLMsCompKmeans.NC       = C;
-out.TestGLMsCompKmeans.NSUMD    = SUMD;
-out.TestGLMsCompKmeans.ND       = D;
-% Get Tvals for every cluster
-for ii = 1:out.GLMsCompsKMeans
-    clcomps = find(IDX==ii); % cluster IDs for each componenent
-    clch = ch(clcomps) ;
-    clco= co(clcomps);
-    nn = numel(clcomps);
-    % create matrix for each cluster
-    Z = zeros(nn,out.nFeat);
-    for jj = 1:nn
-        Z(jj,:) = out.Projections(clch(jj),:,clco(jj));
-    end
-    [~,p,~,t] = ttest(Z);
-    out.TestGLMsCompKmeans.NT(ii,:) = t.tstat;
-    out.TestGLMsCompKmeans.NP(ii,:) = p;
-end
-
-%% Get Distribution of Selected components by ROIs
-K       = out.GLMsCompsKMeans;
-rois    = data.ROIid;
-nROIs   = numel(unique(rois));
-
-StudTest    = {'StudyGLMsCompKmeans','TestGLMsCompKmeans'};
-PosNegComp  = {'PosCompIDs','NegCompIDs'};
-PosNegCLID  = {'PIDX','NIDX'};
-
-% components above/below threshold
-comps = cell(2,2); % rows: pos/neg: col: study/test
-out.GLMsThrComps  = [];
-for ii =1:2
-    for jj=1:2
-        comps{ii,jj}=out.(StudTest{ii}).(PosNegComp{jj})(:,1);
-    end
-end
-out.GLMsThrComps.CompsStr = {'+Study','+Test';'-Study','-Test'};
-out.GLMsThrComps.CompIDs = comps;
-
-% Distribution of rois by pos/neg-study/test components.
-Ns = zeros(nROIs,2,2);
-% Distribution of rois by cluster AND pos/neg-study/test components.
-ROIkCompNs = zeros(nROIs,K,2,2);
-for rr=1:nROIs
-    for ii = 1:2
-        for jj = 1:2
-            for kk=1:K
-                cLIDs = out.(StudTest{ii}).(PosNegCLID{jj})==kk;
-                ROIkCompNs(rr,kk,ii,jj) = sum(rois(comps{ii,jj}(cLIDs))==rr);
-            end % clusters
-            Ns(rr,ii,jj)=sum(rois(comps{ii,jj})==rr);
-        end % study/test
-    end % pos/neg
-end % rois
-out.GLMsThrComps.nCompsByCLROI = ROIkCompNs;
-out.GLMsThrComps.nCompsByCLROIDims = {'ROI','K','Study/Test','Pos/Neg'};
-
-
-ROIKCont = zeros(nROIs,K,2,2);
-for kk = 1:K
-    temp    = squeeze(ROIkCompNs(:,kk,:,:))./Ns;
-    tempS   = squeeze(sum(temp));
-    for ii =1:2
-        for jj=1:2
-            ROIKCont(:,kk,ii,jj) = temp(:,ii,jj)/tempS(ii,jj);
+        if ~isempty(CompsIdx1)
+            out.StudyGLMs{subjChans(c)} = fitglm(C(:,CompsIdx1),rts1);
+            out.StudyGLMSChanCompTVal(subjChans(c),CompsIdx1) ...
+                = out.StudyGLMs{subjChans(c)}.Coefficients.tStat(2:end);
+            out.StudyGLMsChanR2(subjChans(c))...
+                = out.StudyGLMs{subjChans(c)}.Rsquared.Ordinary;
+            out.StudyGLMsChanAR2(subjChans(c)) = ...
+                out.StudyGLMs{subjChans(c)}.Rsquared.Adjusted;
+        end
+        if ~isempty(CompsIdx2)
+            out.TestGLMs{subjChans(c)} = fitglm(C(:,CompsIdx2),rts2);
+            out.TestGLMSChanCompTVal(subjChans(c),CompsIdx2) ...
+                = out.TestGLMs{subjChans(c)}.Coefficients.tStat(2:end);
+            out.TestGLMsChanR2(subjChans(c)) ...
+                = out.TestGLMs{subjChans(c)}.Rsquared.Ordinary;
+            out.TestGLMsChanAR2(subjChans(c)) = ...
+                out.TestGLMs{subjChans(c)}.Rsquared.Adjusted;
         end
     end
 end
-out.GLMsThrComps.relContCLROI = ROIKCont;
+
+%% Matrix of Components that explain RTs: Study
+out.StudySelComps =[];
+X = out.CorrStudyRTs;
+
+[chP,coP] = find(X>opts.rThr);
+out.StudySelComps.PosCompIDs = [chP,coP];
+[chN,coN] = find(X<-opts.rThr );
+out.StudySelComps.NegCompIDs = [chN,coN];
+ch = [chP;chN]; co = [coP;coN];
+out.StudySelComps.CompIDs    = [ch,co];
+nPosComps = numel(chP);
+nNegComps = numel(chN);
+nComps  = nPosComps+nNegComps;
+
+Y = zeros(nComps,out.nFeat);
+out.StudySelComps.Corrs = zeros(nComps,1);
+for ii = 1:nComps
+    if ii <= nPosComps
+        Y(ii,:) = out.Projections(ch(ii),:,co(ii));
+        out.StudySelComps.Corrs(ii) = X(ch(ii),co(ii));
+    else
+        Y(ii,:) = -out.Projections(ch(ii),:,co(ii));
+        out.StudySelComps.Corrs(ii) = -X(ch(ii),co(ii));
+    end
+    out.StudySelComps.Corrs(ii) = X(ch(ii),co(ii));
+end
+Yp = Y(1:nPosComps,:);
+Xp = out.StudySelComps.Corrs(1:nPosComps,:);
+[c,p]=corr(Yp,Xp);
+out.StudySelComps.PCompCorr = [c,p];
+
+Yn = Y((nPosComps+1):end,:);
+Xn = out.StudySelComps.Corrs((nPosComps+1):end,:);
+[c,p]=corr(Yn,Xn);
+out.StudySelComps.NCompCorr = [c,p];
+
+Y2 = [Yp;-Yn]; X2 = [Xp;-Xn];
+[c,p]=corr(Y2,X2);
+out.StudySelComps.CompCorr = [c,p];
+
+out.StudySelComps.Mat = Y;
+%% %% Find Covariance Among Selected Components by Region.
+
+%components across all selected components
+out.StudyPCASelComps =[];
+[C,S,~,~,E]= pca(Y','NumComponents',out.nComps,'centered',false);
+[C,S] = getCompSign(C,S);
+out.StudyPCASelComps.C =C;
+out.StudyPCASelComps.S =S;
+out.StudyPCASelComps.E =E;
+
+% components by region
+out.StudyPCASelCompsROIs =[];
+out.StudyPCASelCompsROIs.C =cell(out.nROIs,1);
+out.StudyPCASelCompsROIs.S =cell(out.nROIs,1);
+out.StudyPCASelCompsROIs.E =cell(out.nROIs,1);
+out.StudyPCASelCompsROIs.compROIs =cell(out.nROIs,1);
+for rr = 1:out.nROIs
+    compROIs = find(rois(ch)==rr);
+    [C,S,~,~,E]= pca(Y(compROIs,:)','NumComponents',out.nComps,'centered',false);
+    [C,S] = getCompSign(C,S);
+    out.StudyPCASelCompsROIs.C{rr} = C;
+    out.StudyPCASelCompsROIs.S{rr} = S;
+    out.StudyPCASelCompsROIs.E{rr} = E;
+    out.StudyPCASelCompsROIs.compROIs{rr} = compROIs;
+        
+    pCompROIs = compROIs(compROIs<=nPosComps);
+    Yp = Y(pCompROIs,:);
+    Xp = out.StudySelComps.Corrs(pCompROIs,:);
+    [c,p]=corr(Yp,Xp);
+    out.StudyPCASelCompsROIs.PCompCorr{rr} = [c,p];
+    
+    nCompROIs = compROIs(compROIs>nPosComps);
+    Yn = Y(nCompROIs,:);
+    Xn = out.StudySelComps.Corrs(nCompROIs,:);
+    [c,p]=corr(Yn,Xn);
+    out.StudyPCASelCompsROIs.NCompCorr{rr} = [c,p];
+    
+    Y2 = [Yp;-Yn]; X2 = [Xp;-Xn];
+    [c,p]=corr(Y2,X2);
+    out.StudyPCASelCompsROIs.CompCorr{rr} = [c,p];
+end
 
 
+%% Matrix of Components that explain RTs: Test
+out.TestSelComps =[];
+X = out.CorrTestRTs;
 
+% Test Positive
+[chP,coP] = find(X>opts.rThr);
+out.TestSelComps.PosCompIDs = [chP,coP];
+[chN,coN] = find(X<-opts.rThr);
+out.TestSelComps.NegCompIDs = [chN,coN];
+ch = [chP;chN]; co = [coP;coN];
+out.TestSelComps.CompIDs    = [ch,co];
+
+nPosComps = numel(chP);
+nNegComps = numel(chN);
+nComps  = nPosComps+nNegComps;
+
+Y  = zeros(nComps,out.nFeat);
+out.TestSelComps.Corrs = zeros(nComps,1);
+for ii = 1:nComps
+    if ii <= nPosComps
+        Y(ii,:) = out.Projections(ch(ii),:,co(ii));
+        out.TestSelComps.Corrs(ii) = X(ch(ii),co(ii));
+    else
+        Y(ii,:) = -out.Projections(ch(ii),:,co(ii));
+        out.TestSelComps.Corrs(ii) = -X(ch(ii),co(ii));
+    end
+    
+end
+Yp = Y(1:nPosComps,:);
+Xp = out.TestSelComps.Corrs(1:nPosComps,:);
+[c,p]=corr(Yp,Xp);
+out.TestSelComps.PCompCorr = [c,p];
+
+Yn = Y((nPosComps+1):end,:);
+Xn = out.TestSelComps.Corrs((nPosComps+1):end,:);
+[c,p]=corr(Yn,Xn);
+out.TestSelComps.NCompCorr = [c,p];
+
+Y2 = [Yp;-Yn]; X2 = [Xp;-Xn];
+[c,p]=corr(Y2,X2);
+out.TestSelComps.CompCorr = [c,p];
+out.TestSelComps.Mat = Y;
+
+%% Find Covariance Among Selected Components by Region.
+%components across all selected components
+out.TestPCASelComps =[];
+[C,S,~,~,E]= pca(Y','NumComponents',out.nComps,'centered',false);
+out.TestPCASelComps.Corig =C;
+out.TestPCASelComps.Sorig =S;
+[C,S] = getCompSign(C,S);
+out.TestPCASelComps.C =C;
+out.TestPCASelComps.S =S;
+out.TestPCASelComps.E =E;
+
+% components by region
+out.TestPCASelCompsROIs =[];
+out.TestPCASelCompsROIs.C =cell(out.nROIs,1);
+out.TestPCASelCompsROIs.S =cell(out.nROIs,1);
+out.TestPCASelCompsROIs.E =cell(out.nROIs,1);
+out.TestPCASelCompsROIs.compROIs = cell(out.nROIs,1);
+for rr = 1:out.nROIs
+    compROIs = find(rois(ch)==rr);
+    [C,S,~,~,E]= pca(Y(compROIs,:)','NumComponents',out.nComps,'centered',false);
+    [C,S] = getCompSign(C,S);
+    out.TestPCASelCompsROIs.C{rr} = C;
+    out.TestPCASelCompsROIs.S{rr} = S;
+    out.TestPCASelCompsROIs.E{rr} = E;
+    out.TestPCASelCompsROIs.compROIs{rr} = compROIs;
+    
+    pCompROIs = compROIs(compROIs<=nPosComps);
+    Yp = Y(pCompROIs,:);
+    Xp = out.TestSelComps.Corrs(pCompROIs,:);
+    [c,p]=corr(Yp,Xp);
+    out.TestPCASelCompsROIs.PCompCorr{rr} = [c,p];
+    
+    nCompROIs = compROIs(compROIs>nPosComps);
+    Yn = Y(nCompROIs,:);
+    Xn = out.TestSelComps.Corrs(nCompROIs,:);
+    [c,p]=corr(Yn,Xn);    
+    out.TestPCASelCompsROIs.NCompCorr{rr} = [c,p];    
+    
+    Y2 = [Yp;-Yn]; X2 = [Xp;-Xn];
+    [c,p]=corr(Y2,X2);
+    out.TestPCASelCompsROIs.CompCorr{rr} = [c,p];
+end
+
+end
+function [C,S]=getCompSign(C,S)
+
+nComps = size(C,2);
+try
+    for cc = 1:nComps
+        
+        x=mean(C(:,cc)*S(:,cc)')';
+        negComp = sign(corr(x,S(:,cc)));
+        C(:,cc) = negComp*C(:,cc);
+        S(:,cc) = x;
+        %     Y=X-C(:,setdiff(1:nComps,cc))*S(:,setdiff(1:nComps,cc))';
+        %     compSgn=sign(mean(Y*S(:,cc)));
+        %     S(:,cc) = compSgn*S(:,cc);
+        %     C(:,cc) = compSgn*C(:,cc);
+        %
+        %     % Get correct scaling for componenets
+        %     S(:,cc) = mean(X*S(:,cc)')';
+    end
+ 
+    
+catch
+end
+end

@@ -58,8 +58,8 @@ switch figNum
         opts.rThr = 0.3;
         opts.pThr = 0.01;
         opts.tThr = 1;
-        opts.plot1 = 0; opts.plot2 = 1; opts.plot3 = 0;
-        opts.plot4 = 1;
+        opts.plot1 = 0; opts.plot2 = 1; opts.plot3 = 1;
+        opts.plot4 = 0;
         opts.dataPath = '~/Google Drive/Research/ECoG_SS2e/data_results/';
         lockType     = {'preStim2','stim','RT'};        
         for lt = lockType
@@ -71,21 +71,51 @@ switch figNum
         
     case 7
         % GLMs PCA components analyses
+%         opts=[];
+%         opts.tThr = 1.5;
+%         opts.rThr = 0.15;
+%         opts.pThr = 0.01;
+%         opts.plot1 = 1; opts.plot2 = 0; opts.plot3 = 0;
+%         opts.plot4 = 0; opts.plot5 = 0; opts.plot6 = 0;
+%         opts.dataPath = '~/Google Drive/Research/ECoG_SS2e/data_results/';
+%         lockType     = {'preStim2','stim','RT'};
+%         
+%         for lt = lockType
+%             opts.lock = lt{1};
+%             opts.savePath = ['~/Google Drive/Research/ECoG_SS2e/Plots/a7/' opts.lock '/'];
+%             if ~exist(opts.savePath,'dir'), mkdir(opts.savePath), end;
+%             GLM_PCACompPlots(opts)
+%         end
+    case 8
+        % PCA Components Plots
         opts=[];
-        opts.tThr = 1.5;
+        opts.rThr = 0.15;
         opts.pThr = 0.01;
         opts.plot1 = 0; opts.plot2 = 0; opts.plot3 = 0;
-        opts.plot4 = 0; opts.plot5 = 1; opts.plot6 = 0;
+        opts.plot4 = 0; opts.plot5 = 1; opts.plot6 = 1;
         opts.dataPath = '~/Google Drive/Research/ECoG_SS2e/data_results/';
         lockType     = {'preStim2','stim','RT'};
+        %lockType     = {'RT'};
         
         for lt = lockType
             opts.lock = lt{1};
-            opts.savePath = ['~/Google Drive/Research/ECoG_SS2e/Plots/a7/' opts.lock '/'];
+            opts.savePath = ['~/Google Drive/Research/ECoG_SS2e/Plots/a8/' opts.lock '/'];
             if ~exist(opts.savePath,'dir'), mkdir(opts.savePath), end;
-            GLM_PCACompPlots(opts)
+            GLM_PCACompPlots2(opts)
         end
         
+    case 9
+        % PCA on single bands
+        opts.dataPath = '~/Google Drive/Research/ECoG_SS2e/data_results/';
+        lockType     = {'preStim2','stim','RT'};
+        %lockType     = {'RT'};
+        
+        for lt = lockType
+            opts.lock = lt{1};
+            opts.savePath = ['~/Google Drive/Research/ECoG_SS2e/Plots/a9/' opts.lock '/'];
+            if ~exist(opts.savePath,'dir'), mkdir(opts.savePath), end;
+            GLM_PCA_SB_CompPlots(opts)
+        end
     otherwise
         error('figure has not been implemented.')
 end

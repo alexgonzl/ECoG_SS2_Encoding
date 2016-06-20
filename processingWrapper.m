@@ -266,8 +266,6 @@ save([dataPath fileName '.mat'],'elecLocs');
 %% PCA trial analysis
 addpath Analysis/
 addpath lib/
-addpath lib/rpca/
-addpath lib/rpca/PROPACK/
 
 %lockType     = {'preStim2','stim','RT'};
 lockType     = {'preStim2','stim','RT'};
@@ -275,7 +273,7 @@ lockType     = {'preStim2','stim','RT'};
 opts                = [];
 opts.hems           = 'all';
 opts.nComps         = 15;
-opts.rThr           = 0.1;
+opts.rThr           = 0.2;
 opts.reference      = 'nonLPCch';
 opts.dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
 for lt = lockType
@@ -285,13 +283,63 @@ for lt = lockType
     load([opts.dataPath opts.lockType '/' fileName '.mat'])
     
     %out     = PCATrialDecomp(data,opts);
-    out = PCATrialDecomp_SelectComps(data,opts)
+    out = PCATrialDecomp_SelectComps(data,opts);
     
-    fileName            = ['PCATrialDecomp-MBAnalysis' extension]; 
+    fileName            = ['PCATrialDecomp-MBAnalysis2' extension]; 
+    save([opts.dataPath opts.lockType '/' fileName '.mat'],'out')
+    
+    fprintf('PCA trial decomp completed for %s\n',lt{1})    
+end
+%% PCA trial analyses by band
+addpath Analysis/
+addpath lib/
+
+%lockType     = {'preStim2','stim','RT'};
+lockType     = {'preStim2','stim','RT'};
+
+opts                = [];
+opts.hems           = 'all';
+opts.nComps         = 5;
+opts.rThr           = 0.15;
+opts.reference      = 'nonLPCch';
+opts.dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
+for lt = lockType
+    opts.lockType       = lt{1};
+    extension           = [opts.lockType 'sublogPower' opts.reference];
+    fileName            = [opts.hems 'MBAnalysis' extension];
+    load([opts.dataPath opts.lockType '/' fileName '.mat'])
+
+    out = PCATrialDecomp_SelectCompsSB(data,opts);    
+    fileName            = ['PCATrialDecomp-SBAnalysis' extension]; 
+    save([opts.dataPath opts.lockType '/' fileName '.mat'],'out')
+    fprintf('PCA trial decomp SB completed for %s\n',lt{1})    
+end
+%% Kmeans on the PCs
+addpath Analysis/
+addpath lib/
+
+lockType     = {'preStim2','stim','RT'};
+
+opts                = [];
+opts.maxK           = 10;
+opts.reference      = 'nonLPCch';
+opts.dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
+for lt = lockType
+    opts.lockType       = lt{1};
+    extension           = [opts.lockType 'sublogPower' opts.reference];
+    fileName            = ['PCATrialDecomp-MBAnalysis2' extension];
+    load([opts.dataPath opts.lockType '/' fileName '.mat'])
+    
+    %out     = PCATrialDecomp(data,opts);
+    out = PCATrialDecomp_Kmeans(out,opts);
+    
+    fileName            = ['PCATrialDecomp-MBAnalysis2_Kmeans' extension]; 
     save([opts.dataPath opts.lockType '/' fileName '.mat'],'out')
 
     fprintf('PCA trial decomp completed for %s\n',lt{1})    
 end
+
+
 
 %% multiband ITC
 

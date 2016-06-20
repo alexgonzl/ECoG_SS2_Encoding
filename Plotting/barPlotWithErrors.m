@@ -82,11 +82,35 @@ if isfield(opts,'yLabel')
 end
 if isfield(opts, 'sigMarks')
     nMarks = size(opts.sigMarks,1);
+    if isfield(opts,'sigLevel')
+        marks=cell(nMarks,1);
+        for ii=1:nMarks,
+            if opts.sigLevel(ii)<0.001
+                marks{ii}='***';
+            elseif opts.sigLevel(ii)<0.01
+                marks{ii}='**';
+            elseif opts.sigLevel(ii)<0.05
+                marks{ii}='*';
+            elseif opts.sigLevel(ii)<0.1
+                marks{ii}='~';
+            end
+        end
+    else
+        marks=cell(nMarks,1);
+        for ii=1:nMarks, marks{ii}='*'; end
+    end
     for ii = 1:nMarks
-        ypos = [1 1]*ma*(1+.12*ii);
+        ypos = [1 1]*ma*(1+.18*ii);
         xpos = opts.sigMarks(ii,:);
         plot(xpos,ypos,'-k','linewidth',2)
-        plot(mean(xpos),ma*(1.04+.12*ii),'*k')
+        if strcmp(marks{ii},'~')            
+            tt=text(mean(xpos),ypos(1)*1.05, marks{ii});
+        else
+            tt=text(mean(xpos),ypos(1)*1.02, marks{ii});
+        end
+        tt.VerticalAlignment='middle'; tt.HorizontalAlignment='center';
+        tt.FontSize=25;
+        %plot(mean(xpos),ma*(1.04+.12*ii),marks{ii},'color','k')
     end    
 end
-set(gca,'LineWidth',2,'FontSize',18)
+set(gca,'LineWidth',2,'FontSize',20)
