@@ -15,11 +15,12 @@ switch figNum
         % II. Behavioral
         savePath = '~/Google Drive/Research/ECoG_SS2e/Plots/a2/';
         if ~exist(savePath,'dir'), mkdir(savePath), end;
-        behavPlots(savePath);
+        %behavPlots(savePath);
+        behavPlots_prelim(savePath);
     case 3
         % III. Activity Plots
         % ROI Encoding Activity
-        lockType     = {'preStim2','stim','RT'};
+        lockType     = {'preStim','preStim2','stim','RT'};
         for lt = lockType
             opts=[];
             opts.lock = lt{1};
@@ -58,10 +59,10 @@ switch figNum
         opts.rThr = 0.3;
         opts.pThr = 0.01;
         opts.tThr = 1;
-        opts.plot1 = 0; opts.plot2 = 1; opts.plot3 = 1;
+        opts.plot1 = 1; opts.plot2 = 0; opts.plot3 = 0;
         opts.plot4 = 0;
         opts.dataPath = '~/Google Drive/Research/ECoG_SS2e/data_results/';
-        lockType     = {'preStim2','stim','RT'};        
+        lockType     = {'preStim','preStim2','stim','RT'};        
         for lt = lockType
             opts.lock = lt{1};
             opts.savePath = ['~/Google Drive/Research/ECoG_SS2e/Plots/a6/' opts.lock '/'];
@@ -89,12 +90,12 @@ switch figNum
     case 8
         % PCA Components Plots
         opts=[];
-        opts.rThr = 0.15;
+        opts.rThr = 0.2;
         opts.pThr = 0.01;
         opts.plot1 = 0; opts.plot2 = 0; opts.plot3 = 0;
-        opts.plot4 = 0; opts.plot5 = 1; opts.plot6 = 1;
+        opts.plot4 = 0; opts.plot5 = 1; opts.plot6 = 0;
         opts.dataPath = '~/Google Drive/Research/ECoG_SS2e/data_results/';
-        lockType     = {'preStim2','stim','RT'};
+        lockType     = {'preStim','preStim2','stim','RT'};
         %lockType     = {'RT'};
         
         for lt = lockType

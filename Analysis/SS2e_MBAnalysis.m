@@ -4,7 +4,6 @@
 function SS2e_MBAnalysis(lock,AnalysisNum,opts)
 inkscapePath='/Applications/Inkscape.app/Contents/Resources/bin/inkscape';
 
-
 addpath Analysis/
 addpath Plotting/
 addpath lib/
@@ -43,20 +42,26 @@ info.groupNames = {'IPS','SPL','AG'};
 info.Bins       = data.Bins;
 %info.yLimits    = [-1 1.6];
 %info.yLimits    = [-4 2];
-if strcmp(lock,'stim')
+switch lock
+    case 'stim'
     info.xtick      = [0 0.4 0.8 1.2];
     info.toi        = [0 1.5];
     info.alpha      = 0.05/15;
     info.xticklabel = {'stim','0.4','0.8','1.2'};
-elseif strcmp(lock,'RT')
+    case 'RT'
     info.yAxisRightLoc = 1;
     info.xtick      = [-0.8 -0.4 0 0.4];
     info.xticklabel = {'-0.8','-0.4','resp','0.4'};
-elseif strcmp(lock, 'preStim2')
+    case  {'preStim2'}
     info.xtick      = [-.8 -0.4 0 0.4 0.8 1.2];
     info.toi        = [-1 1.5];
     info.alpha      = 0.05/26;
     info.xticklabel = {'-0.8','-0.4','stim','0.4','0.8','1.2'};
+    case  {'preStim'}
+    info.xtick      = [-1.2 -.8 -0.4 0 0.4 0.8 1.2];
+    info.toi        = [-1.5 1.5];
+    info.alpha      = 0.05/30;
+    info.xticklabel = {'-1.2','-0.8','-0.4','stim','0.4','0.8','1.2'};
 end
 
 info.cols            = 'oc';

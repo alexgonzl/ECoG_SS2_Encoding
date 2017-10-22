@@ -4,7 +4,8 @@ function GLM_PCACompPlots2(opts)
 % load data and PCA results
 fileName = ['allMBAnalysis' opts.lock 'sublogPowernonLPCch'];
 load([opts.dataPath opts.lock '/' fileName '.mat'])
-fileName = ['PCATrialDecomp-MBAnalysis2_Kmeans' opts.lock 'sublogPowernonLPCch'];
+%fileName = ['PCATrialDecomp-MBAnalysis2_Kmeans' opts.lock 'sublogPowernonLPCch'];
+fileName = ['PCATrialDecomp-MBAnalysis2' opts.lock 'sublogPowernonLPCch'];
 load([opts.dataPath opts.lock '/' fileName '.mat'])
 pcadat = out; clear out;
 % load electrode locations
@@ -27,7 +28,7 @@ rcolmap = brewermap(1000,'*RdBu');
 nBins   = sum(data.AnalysisBins);
 ROIcolors = [240 35 17; 2 93 140;122 179 23]/255;
 
-%% plot 1. Tval histograms
+%% plot 1. Histogram of Component Correlations
 if opts.plot1
     p1Name = ['SelCompsCorr' opts.lock '_rThr' strrep(num2str(rThr),'.','p')];
     x=[];
@@ -228,7 +229,7 @@ if opts.plot5
         case 'RT'
             xtick      = [-0.8 -0.4 0 0.4];
             xticklabel = {'-0.8','-0.4','resp','0.4'};
-        case  'preStim2'
+        case  {'preStim','preStim2'}
             xtick      = [-.8 -0.4 0 0.4 0.8 1.2];
             xticklabel = {'-0.8','-0.4','stim','0.4','0.8','1.2'};
     end
@@ -272,7 +273,7 @@ if opts.plot6
         case 'RT'
             xtick      = [-0.8 -0.4 0 0.4];
             xticklabel = {'-0.8','-0.4','resp','0.4'};
-        case  'preStim2'
+        case {'preStim','preStim2'}
             xtick      = [-.8 -0.4 0 0.4 0.8 1.2];
             xticklabel = {'-0.8','-0.4','stim','0.4','0.8','1.2'};
     end

@@ -113,7 +113,8 @@ subjects = {'16b','17b','18','19','24','28','29','30'};
 reference = 'nonLPCch';
 %reference = 'nLPClowEvokedVar';
 
-lockType     = {'preStim2','stim','RT'};
+%lockType     = {'preStim2','stim','RT'};
+lockType     = {'preStim'};
 
 analysisType = 'logPower';%{'Amp','Power', 'logPower'};
 baselineType = 'sub';%{'rel','sub'}
@@ -141,6 +142,7 @@ for s = subjects
             save([dataPath s{1}  '/Spectral_Data/' band{1} '/ERSPs' band{1} lt{1} baselineType analysisType ...
                 reference '.mat'],'data')
         end
+         fprintf('ERPS computed for %s and %s\n',s{1},band{1})
     end
 end
 
@@ -149,8 +151,9 @@ addpath Analysis/
 addpath lib/
 
 bands        = {'delta','theta','alpha','beta','lgam','hgam'};
-lockType     = {'preStim2','stim','RT'};
-%lockType     = {'RT'};
+%bands        = {'beta','lgam','hgam'};
+%lockType     = {'preStim2','stim','RT'};
+lockType     = {'preStim'};
 
 opts                = [];
 opts.hems           = 'all';
@@ -190,8 +193,8 @@ addpath Analysis/
 addpath lib/
 
 bands        = {'delta','theta','alpha','beta','lgam','hgam'};
-lockType     = {'preStim2','stim','RT'};
-%lockType     = {'preStim2'};
+%lockType     = {'preStim2','stim','RT'};
+lockType     = {'preStim'};
 opts                = [];
 opts.hems           = 'all';
 opts.bands          = bands;
@@ -267,13 +270,14 @@ save([dataPath fileName '.mat'],'elecLocs');
 addpath Analysis/
 addpath lib/
 
-%lockType     = {'preStim2','stim','RT'};
-lockType     = {'preStim2','stim','RT'};
+lockType     = {'preStim','preStim2','stim','RT'};
+%lockType     = {'preStim'};
 
 opts                = [];
 opts.hems           = 'all';
 opts.nComps         = 15;
 opts.rThr           = 0.2;
+opts.pThr           = 0.05;
 opts.reference      = 'nonLPCch';
 opts.dataPath       = '~/Google Drive/Research/ECoG_SS2e/data_results/';
 for lt = lockType
@@ -285,7 +289,7 @@ for lt = lockType
     %out     = PCATrialDecomp(data,opts);
     out = PCATrialDecomp_SelectComps(data,opts);
     
-    fileName            = ['PCATrialDecomp-MBAnalysis2' extension]; 
+    fileName            = ['PCATrialDecomp-MBAnalysis3' extension]; 
     save([opts.dataPath opts.lockType '/' fileName '.mat'],'out')
     
     fprintf('PCA trial decomp completed for %s\n',lt{1})    
@@ -295,7 +299,7 @@ addpath Analysis/
 addpath lib/
 
 %lockType     = {'preStim2','stim','RT'};
-lockType     = {'preStim2','stim','RT'};
+lockType     = {'preStim','preStim2','stim','RT'};
 
 opts                = [];
 opts.hems           = 'all';

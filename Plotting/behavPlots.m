@@ -1,5 +1,5 @@
+function behavPlots_prelim(savePath)
 %% Plot the results by subject.
-function behavPlots(savePath)
 
 dataPath  = '~/Google Drive/Research/ECoG_SS2e/Behavior/summary/';
 load([dataPath 'behavSummary.mat'])
@@ -20,154 +20,220 @@ for ss = 1:nSubjs
 end
 
 shapes = 'ods><x+^';
-figure(1); clf; 
+
+% Figure: combined plots
+
+% axis 1, accuracy.
+y = AC;
+opts = [];
+opts.shapes = shapes;
+opts.f_han = figure(1); clf;
 set(gcf, 'position', [100 100 800 400],'paperpositionmode','auto');
-sD = 200;
-% accuracy plot
-axes('position',[0.05 0.1 0.18 0.85]); hold on;
-xlim([0 1]); ylim([-0.1 1.1])
+opts.markerSize = 125;
+opts.ax_han =  axes('position',[0.05 0.1 0.15 0.85]);
+opts.yLims = [-0.1 1.1];
+opts.yticks = [0 0.5 1];
+opts.text = sprintf(' M = %0.2f',mean(y));
+%opts.text_loc = [0.5,0.2];
+opts.xLabel = ' ACC ';
+opts.yLabel = '';
+opts.xticks = '';
+opts.inkspace = inkscapePath;
 
-for ss= 1:nSubjs
-    s=scatter(0.5+randn*0.1,AC(ss),shapes(ss));
-    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
-end
-plot([0.2 0.8],[1 1]*mean(AC),'linewidth',3,'color',0.4*ones(1,3))
-set(gca,'fontsize',20,'xtick',[],'ytick',[0 0.5 1],'linewidth',2);
-xlabel(' ACC ')
-text(0.5,0.1,sprintf(' M = %0.2f',mean(AC)),'fontsize',20,'horizontalalignment','center')
+coreplot(y,opts);
 
+%---%
+% axis 2, RTs (encoding)
+y = RTe;
+opts.ax_han = axes('position',[0.30 0.1 0.15 0.85]); hold on;
+opts.yLims = [-0.2 2.6];
+opts.xLabel = ' RTs-enc (s) ';
+opts.yticks = [0 1 2];
+opts.text = sprintf(' M = %0.2fs',mean(RTe));
+%opts.text_loc = [0.5 0.2];
 
-% RTs (encoding)
-axes('position',[0.28 0.1 0.18 0.85]); hold on;
-xlim([0 1]); ylim([-0.2 2.6])
-
-for ss= 1:nSubjs
-    s=scatter(0.5+randn*0.1,RTe(ss),shapes(ss));
-    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
-end
-plot([0.2 0.8],[1 1]*mean(RTe),'linewidth',3,'color',0.4*ones(1,3))
-set(gca,'fontsize',20,'xtick',[],'ytick',[0 1 2],'linewidth',2);
-xlabel(' RTs-enc (s) ')
-text(0.5,0.2,sprintf(' M = %0.2fs',mean(RTe)),'fontsize',20,'horizontalalignment','center')
+coreplot(y,opts);
 
 % RTs (retrieval)
-axes('position',[0.51 0.1 0.18 0.85]); hold on;
-xlim([0 1]); ylim([-0.2 2.6])
+y = RTr;
+opts.ax_han = axes('position',[0.55 0.1 0.15 0.85]); hold on;
+opts.xLabel = ' RTs-ret (s) ';
+opts.text = sprintf(' M = %0.2fs',mean(RTr));
 
-for ss= 1:nSubjs
-    s=scatter(0.5+randn*0.1,RTr(ss),shapes(ss));
-    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
-end
-plot([0.2 0.8],[1 1]*mean(RTr),'linewidth',3,'color',0.4*ones(1,3))
-set(gca,'fontsize',20,'xtick',[],'ytick',[0 1 2],'linewidth',2);
-xlabel(' RTs-ret (s) ')
-text(0.5,0.2,sprintf(' M = %0.2fs',mean(RTr)),'fontsize',20,'horizontalalignment','center')
+coreplot(y,opts);
 
-% RT-corr ( enc-ret)
-axes('position',[0.74 0.1 0.18 0.85]); hold on;
-xlim([0 1]); ylim([-0.6 0.6])
-
-for ss= 1:nSubjs
-    s=scatter(0.5+randn*0.1,RTsCorr(ss),shapes(ss));
-    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
-end
-plot([0.2 0.8],[1 1]*mean(RTsCorr),'linewidth',3,'color',0.4*ones(1,3))
-set(gca,'fontsize',20,'xtick',[],'ytick',[-0.5 0 0.5],'linewidth',2);
-xlabel(' enc-ret (r) ')
-text(0.5,-.4,sprintf(' M = %0.2f',mean(RTsCorr)),'fontsize',20,'horizontalalignment','center')
+% RT-corr ( enc-ret) and save
+y = RTsCorr;
+opts.ax_han = axes('position',[0.80 0.1 0.15 0.85]); hold on;
+opts.yLims = [-0.6 0.6];
+opts.xLabel = ' enc-ret (r) ';
+opts.text = sprintf(' M = %0.2f',mean(RTsCorr));
+%opts.text_loc = [0.5,-.4];
+opts.yticks = [-0.5 0 0.5];
 
 
-fN = 'encodingPerfScatter';
-cPath = pwd;
-cd(fP)
-addpath(cPath)
-addpath([cPath '/Plotting/'])
+opts.filePath = fP;
+opts.fN =  'encodingPerfScatter';
+coreplot(y,opts);
 
-print(gcf,'-dsvg',fN)
-eval(['!' inkscapePath ' -z ' fN '.svg' ' --export-pdf=' fN '.pdf'])
-eval(['!rm ' fN '.svg'])
+%% individual plots
+% accuracy
+y = AC;
+opts = [];
+opts.shapes = shapes;
+opts.f_han = figure(1); clf;
+set(gcf, 'position', [100 100 500 400],'paperpositionmode','auto');
+opts.markerSize = 200;
+opts.ax_han = axes('position',[0.1 0.1 0.38 0.85]); hold on;
 
-cd(cPath)
+opts.yLims = [-0.1 1.1];
+opts.yticks = [0 0.5 1];
+opts.text = sprintf(' M = %0.2f',mean(y));
+opts.xLabel = ' ACC ';
+opts.yLabel = '';
+opts.xticks = '';
+opts.inkspace = inkscapePath;
+
+coreplot(y,opts);
+
+% RTs (encoding)
+y = RTe;
+opts.ax_han = axes('position',[0.55 0.1 0.38 0.85]); hold on;
+opts.yLims = [-0.2 2.2];
+opts.yticks = [0 1 2];
+opts.xLabel = ' RTs-enc (s) ';
+opts.text = sprintf(' M = %0.2f',mean(y));
+opts.filePath = fP;
+opts.fN =  'encodingPerfScatter_1';
+
+coreplot(y,opts);
 
 %%
-
-figure(1); clf; set(gcf, 'position', [100 100 500 400],'paperpositionmode','auto');
-sD = 200;
-% accuracy plot
-axes('position',[0.1 0.1 0.40 0.85]); hold on;
-xlim([0 1]); ylim([-0.1 1.1])
-
-for ss= 1:nSubjs
-    s=scatter(0.5+randn*0.1,AC(ss),shapes(ss));
-    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
-end
-plot([0.2 0.8],[1 1]*mean(AC),'linewidth',3,'color',0.4*ones(1,3))
-set(gca,'fontsize',20,'xtick',[],'ytick',[0 0.5 1],'linewidth',2);
-xlabel(' ACC ')
-text(0.5,0.1,sprintf(' M = %0.2f',mean(AC)),'fontsize',20,'horizontalalignment','center')
-
-
-% RTs (encoding)
-axes('position',[0.55 0.1 0.50 0.85]); hold on;
-xlim([0 1]); ylim([-0.2 2.2])
-
-for ss= 1:nSubjs
-    s=scatter(0.5+randn*0.1,RTe(ss),shapes(ss));
-    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
-end
-plot([0.2 0.8],[1 1]*mean(RTe),'linewidth',3,'color',0.4*ones(1,3))
-set(gca,'fontsize',20,'xtick',[],'ytick',[0 1 2],'linewidth',2);
-xlabel(' RTs-enc (s) ')
-text(0.5,0.2,sprintf(' M = %0.2fs',mean(RTe)),'fontsize',20,'horizontalalignment','center')
-
-
-fN = 'encodingPerfScatter_1';
-cPath = pwd;
-cd(fP)
-addpath(cPath)
-addpath([cPath '/Plotting/'])
-
-print(gcf,'-dsvg',fN)
-eval(['!' inkscapePath ' -z ' fN '.svg' ' --export-pdf=' fN '.pdf'])
-eval(['!rm ' fN '.svg'])
-
-cd(cPath)
-
-figure(2); clf; set(gcf, 'position', [100 100 500 400],'paperpositionmode','auto');
-sD = 200;
 % RTs (retrieval)
-axes('position',[0.1 0.1 0.40 0.85]); hold on;
-xlim([0 1]); ylim([-0.2 2.6])
+y = RTr;
+opts = [];
+opts.shapes = shapes;
+opts.markerSize = 200;
+opts.f_han = figure(2); clf;
+set(gcf, 'position', [100 100 500 400],'paperpositionmode','auto');
+opts.ax_han = axes('position',[0.1 0.1 0.38 0.85]); hold on;
+opts.yLims = [-0.2 2.6];
+opts.yticks = [0 1 2];
+opts.xLabel =' RTs-ret (s) ';
+opts.yLabel = '';
+opts.xticks = '';
+opts.text = sprintf(' M = %0.2f',mean(y));
 
-for ss= 1:nSubjs
-    s=scatter(0.5+randn*0.1,RTr(ss),shapes(ss));
-    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
-end
-plot([0.2 0.8],[1 1]*mean(RTr),'linewidth',3,'color',0.4*ones(1,3))
-set(gca,'fontsize',20,'xtick',[],'ytick',[0 1 2],'linewidth',2);
-xlabel(' RTs-ret (s) ')
-text(0.5,0.2,sprintf(' M = %0.2fs',mean(RTr)),'fontsize',20,'horizontalalignment','center')
+coreplot(y,opts);
 
 % RT-corr ( enc-ret)
-axes('position',[0.55 0.1 0.50 0.85]); hold on;
-xlim([0 1]); ylim([-0.6 0.6])
-for ss= 1:nSubjs
-    s=scatter(0.5+randn*0.1,RTsCorr(ss),shapes(ss));
-    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
+y = RTsCorr;
+opts.ax_han = axes('position',[0.55 0.1 0.38 0.85]); hold on;
+opts.yLims = [-0.6 0.6];
+opts.yticks = [-0.5 0 0.5];
+opts.xLabel =' enc-ret (r) ';
+opts.text = sprintf(' M = %0.2f',mean(y));
+opts.filePath = fP;
+opts.fN =  'encodingPerfScatter_2';
+opts.inkspace = inkscapePath;
+
+coreplot(y,opts);
+
 end
-plot([0.2 0.8],[1 1]*mean(RTsCorr),'linewidth',3,'color',0.4*ones(1,3))
-set(gca,'fontsize',20,'xtick',[],'ytick',[-0.5 0 0.5],'linewidth',2);
-xlabel(' enc-ret (r) ')
-text(0.5,-.4,sprintf(' M = %0.2f',mean(RTsCorr)),'fontsize',20,'horizontalalignment','center')
 
-fN = 'encodingPerfScatter_2';
-cPath = pwd;
-cd(fP)
-addpath(cPath)
-addpath([cPath '/Plotting/'])
+%%---------------------------------------------------------------------------%%
+function [f_han, ax_han] = coreplot(y,opts)
+% internal core plotting function for behavioral inputs
+% this only meant for subject level data, where x position is irrelevant.
 
-print(gcf,'-dsvg',fN)
-eval(['!' inkscapePath ' -z ' fN '.svg' ' --export-pdf=' fN '.pdf'])
-eval(['!rm ' fN '.svg'])
+if isfield(opts,'markerSize')
+    markerSize = opts.markerSize;
+else
+    markerSize = 200;
+end
 
-cd(cPath)
+if isfield(opts,'shapes')
+    subj_shapes = opts.shapes;
+else
+    subj_shapes = repmat('o',1,10);
+end
+
+if isfield(opts,'f_han')
+    f_han = opts.f_han;
+else
+    f_han = figure(1); clf;
+    set(f_han, 'position', [100 100 500 400],'paperpositionmode','auto');
+end
+
+if isfield(opts , 'ax_han')
+    ax_han = opts.ax_han; hold on;
+else
+    ax_han = axes('position',[0.55 0.1 0.50 0.85]); hold on;
+end
+
+nSubjs = numel(y);
+xpos = (1:nSubjs)/nSubjs*0.75;
+
+% actual plotting
+figure(f_han);
+axes(ax_han);
+xlim([0 1]);
+plot([0.05 0.95],[1 1]*mean(y),'linewidth',3,'color',0.4*ones(1,3))
+for ss= 1:nSubjs
+    s=scatter(xpos(ss),y(ss),subj_shapes(ss));
+    set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',markerSize, 'lineWidth',3)
+end
+
+if isfield(opts,'yLims')
+    ylim(opts.yLims);
+    yLims = ylim;
+else
+end
+
+if isfield(opts, 'xLabel')
+    xlabel(opts.xLabel);
+end
+if isfield(opts, 'yLabel')
+    ylabel(opts.yLabel);
+end
+
+if isfield(opts,'text')
+    text_str = opts.text;
+    if isfield(opts,'text_loc')
+        text_loc = opts.text_loc;
+    else
+        text_loc = [0 0];
+        text_loc(1) = 0.5; % middle of the panel
+        text_loc(2) = yLims(1)+range(yLims)*0.2; % 20% from the bottom
+    end
+
+    text(text_loc(1),text_loc(2),text_str, 'fontsize',20,'horizontalalignment','center');
+end
+
+if isfield(opts,'yticks')
+    set(ax_han,'ytick',opts.yticks);
+end
+   
+if isfield(opts,'xticks')
+    set(ax_han,'xtick',opts.xticks);
+end
+
+set(ax_han,'fontsize',20,'linewidth',2);
+
+% save plot
+if isfield(opts,'fN')
+    fN = opts.fN;
+    cPath = pwd;
+    cd(opts.filePath)
+    addpath(cPath)
+    addpath([cPath '/Plotting/'])
+
+    print(gcf,'-dsvg',fN)
+    eval(['!' opts.inkspace ' -z ' fN '.svg' ' --export-pdf=' fN '.pdf'])
+    eval(['!rm ' fN '.svg'])
+
+    cd(cPath)
+end
+
+return % end coreplot
+end

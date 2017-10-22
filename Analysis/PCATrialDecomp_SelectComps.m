@@ -24,16 +24,18 @@ out.VarExp          = zeros(out.nChans,out.nComps);
 
 % Pre allocation for correlations
 out.CorrStudyRTs    = zeros(out.nChans,out.nComps);
+out.CorrStudyRTsP    = zeros(out.nChans,out.nComps);
 out.CorrTestRTs     = zeros(out.nChans,out.nComps);
+out.CorrTestRTsP     = zeros(out.nChans,out.nComps);
 
 % Pre allocation for GLMs
-out.StudySelectedComps      = cell(out.nChans,1);
+out.StudySelectedCompsIDs      = [];
 out.StudyGLMs       		= cell(out.nChans,1);
 out.StudyGLMSChanCompTVal 	= nan(out.nChans,out.nComps);
 out.StudyGLMsChanR2         = nan(out.nChans,1);
 out.StudyGLMsChanAR2         = nan(out.nChans,1);
 
-out.TestSelectedComps       = cell(out.nChans,1);
+out.TestSelectedCompsIDs       = [];
 out.TestGLMs        		= cell(out.nChans,1);
 out.TestGLMSChanCompTVal 	= nan(out.nChans,out.nComps);
 out.TestGLMsChanR2          = nan(out.nChans,1);
@@ -51,6 +53,14 @@ for ss=1:out.nSubjs
     rts1 = -log10(out.sRTs{ss});
     rts2 = -log10(out.tRTs{ss});
     
+    out.rts1{ss} = rts1; out.rts2{ss} = rts2;
+    temp = getQuantileTrialIDs(rts1,[0.4 0.6]);
+    out.FastSlowRTsIDs{ss,1,1} = temp{1};
+    out.FastSlowRTsIDs{ss,1,2} = temp{3};
+    
+    temp = getQuantileTrialIDs(rts2,[0.4 0.6]);
+    out.FastSlowRTsIDs{ss,2,1} = temp{1};
+    out.FastSlowRTsIDs{ss,2,2} = temp{3};
     out.Comps{ss} = zeros(nSubjChan,nSubjTrials,out.nComps);
     
     
@@ -60,7 +70,7 @@ for ss=1:out.nSubjs
         A = squeeze(x(c,:,:));
         
         % PCA
-        [C,S,~,~,E]= pca(A','NumComponents',out.nComps,'Centered',false);
+        [C,S,~,~,E]= pca(A','NumComponents',out.nComps,'Centered',false);       
         % correct for sign (based on inner product of residuals
         [C,S] = getCompSign(C,S);
         
@@ -76,10 +86,26 @@ for ss=1:out.nSubjs
         out.CorrStudyRTsP(subjChans(c),:) = p1;
         out.CorrTestRTsP(subjChans(c),:)  = p2;
         
-        CompsIdx1 = find(abs(r1)>=opts.rThr);
-        out.StudySelectedComps{subjChans(c)} = CompsIdx1;
-        CompsIdx2 = find(abs(r2)>=opts.rThr);
-        out.TestSelectedComps{subjChans(c)} = CompsIdx2;
+        % Tvals  for fast vs slow study RTs
+        [~,p,~,t] = ttest2(C(out.FastSlowRTsIDs{ss,1,1},:),C(out.FastSlowRTsIDs{ss,1,2},:));
+        out.FastVSlow_StudyRTs_CompT(subjChans(c),:)  = t.tstat;        
+        out.FastVSlow_StudyRTs_CompP(subjChans(c),:) = p;
+        
+        % Tvals  for fast vs slow test RTs
+        [~,p,~,t] = ttest2(C(out.FastSlowRTsIDs{ss,2,1},:),C(out.FastSlowRTsIDs{ss,2,2},:));
+        out.FastVSlow_TestRTs_CompT(subjChans(c),:)  = t.tstat;        
+        out.FastVSlow_TestRTs_CompP(subjChans(c),:) = p;
+        
+        CompsIdx1 = find(p1<=opts.pThr); nComps1 = numel(CompsIdx1);
+        CompsIdx2 = find(p2<=opts.pThr); nComps2 = numel(CompsIdx2);
+        
+        out.StudySelectedCompsIDs = [out.StudySelectedCompsIDs;[repmat(subjChans(c),[nComps1,1]),CompsIdx1]];
+        out.TestSelectedCompsIDs  = [out.TestSelectedCompsIDs; [repmat(subjChans(c),[nComps2,1]),CompsIdx2]];
+        % CompsIdx1 = find(abs(r1)>=opts.rThr);
+        % CompsIdx2 = find(abs(r2)>=opts.rThr);
+        %         
+        % out.StudySelectedComps{subjChans(c)} = CompsIdx1;        
+        % out.TestSelectedComps{subjChans(c)} = CompsIdx2;
         
         % GLMSs
         if ~isempty(CompsIdx1)
@@ -105,11 +131,13 @@ end
 
 %% Matrix of Components that explain RTs: Study
 out.StudySelComps =[];
-X = out.CorrStudyRTs;
+X   = out.CorrStudyRTs;
+Xp  = out.CorrStudyRTsP<=opts.pThr;
+X(Xp==0)=nan;
 
-[chP,coP] = find(X>opts.rThr);
+[chP,coP] = find(X>0);
 out.StudySelComps.PosCompIDs = [chP,coP];
-[chN,coN] = find(X<-opts.rThr );
+[chN,coN] = find(X<0);
 out.StudySelComps.NegCompIDs = [chN,coN];
 ch = [chP;chN]; co = [coP;coN];
 out.StudySelComps.CompIDs    = [ch,co];
@@ -122,10 +150,8 @@ out.StudySelComps.Corrs = zeros(nComps,1);
 for ii = 1:nComps
     if ii <= nPosComps
         Y(ii,:) = out.Projections(ch(ii),:,co(ii));
-        out.StudySelComps.Corrs(ii) = X(ch(ii),co(ii));
     else
-        Y(ii,:) = -out.Projections(ch(ii),:,co(ii));
-        out.StudySelComps.Corrs(ii) = -X(ch(ii),co(ii));
+        Y(ii,:) = -out.Projections(ch(ii),:,co(ii));        
     end
     out.StudySelComps.Corrs(ii) = X(ch(ii),co(ii));
 end
@@ -144,6 +170,7 @@ Y2 = [Yp;-Yn]; X2 = [Xp;-Xn];
 out.StudySelComps.CompCorr = [c,p];
 
 out.StudySelComps.Mat = Y;
+
 %% %% Find Covariance Among Selected Components by Region.
 
 %components across all selected components
@@ -189,12 +216,15 @@ end
 
 %% Matrix of Components that explain RTs: Test
 out.TestSelComps =[];
-X = out.CorrTestRTs;
+X   = out.CorrTestRTs;
+Xp  = out.CorrTestRTsP<=opts.pThr;
+X(Xp==0)=nan;
 
 % Test Positive
-[chP,coP] = find(X>opts.rThr);
+[chP,coP] = find(X>0);
+[chN,coN] = find(X<0);
 out.TestSelComps.PosCompIDs = [chP,coP];
-[chN,coN] = find(X<-opts.rThr);
+
 out.TestSelComps.NegCompIDs = [chN,coN];
 ch = [chP;chN]; co = [coP;coN];
 out.TestSelComps.CompIDs    = [ch,co];
@@ -208,12 +238,10 @@ out.TestSelComps.Corrs = zeros(nComps,1);
 for ii = 1:nComps
     if ii <= nPosComps
         Y(ii,:) = out.Projections(ch(ii),:,co(ii));
-        out.TestSelComps.Corrs(ii) = X(ch(ii),co(ii));
     else
-        Y(ii,:) = -out.Projections(ch(ii),:,co(ii));
-        out.TestSelComps.Corrs(ii) = -X(ch(ii),co(ii));
+        Y(ii,:) = -out.Projections(ch(ii),:,co(ii));        
     end
-    
+    out.TestSelComps.Corrs(ii) = X(ch(ii),co(ii));
 end
 Yp = Y(1:nPosComps,:);
 Xp = out.TestSelComps.Corrs(1:nPosComps,:);
@@ -274,26 +302,31 @@ for rr = 1:out.nROIs
 end
 
 end
+% Corrects PCs sign and scale; only makes sense for non-centered data
 function [C,S]=getCompSign(C,S)
 
 nComps = size(C,2);
 try
-    for cc = 1:nComps
-        
+    for cc = 1:nComps        
         x=mean(C(:,cc)*S(:,cc)')';
         negComp = sign(corr(x,S(:,cc)));
         C(:,cc) = negComp*C(:,cc);
         S(:,cc) = x;
-        %     Y=X-C(:,setdiff(1:nComps,cc))*S(:,setdiff(1:nComps,cc))';
-        %     compSgn=sign(mean(Y*S(:,cc)));
-        %     S(:,cc) = compSgn*S(:,cc);
-        %     C(:,cc) = compSgn*C(:,cc);
-        %
-        %     % Get correct scaling for componenets
-        %     S(:,cc) = mean(X*S(:,cc)')';
     end
- 
-    
 catch
 end
+end
+
+% obtain trial ids for different quantiles as specified by quants
+function ids = getQuantileTrialIDs(x,quants)
+    qqs = quantile(x,quants);
+    
+    nGroups = numel(qqs)+1;
+    ids = cell(nGroups,1);
+    
+    ids{1} = x<=qqs(1);
+    ids{nGroups} = x>qqs(nGroups-1);
+    for ii = 2:(nGroups-1)
+        ids{ii} =  x>qqs(ii-1) & x<=qqs(ii);
+    end
 end

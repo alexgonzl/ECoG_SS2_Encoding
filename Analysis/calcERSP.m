@@ -4,8 +4,8 @@ function data=calcERSP(data)
 
 switch  data.lockType
     case 'preStim'
-        data.trialDur = [-1 1]; dur = data.trialDur;
-        data.baseLine = [-1 1];
+        data.trialDur = [-1.5 1.5]; dur = data.trialDur;
+        data.baseLine = [0 0];
     case 'preStim2'
         data.trialDur = [-1.5 1.5]; dur = data.trialDur;
         data.baseLine = [-1.5 -1];
@@ -76,11 +76,12 @@ end
 
 % Correct for baseline fluctuations before trial onset. In case of RT
 % locked analysis, it uses the baselines from the stim locked (loaded outside)
-if ~strcmp(data.lockType,'RT')
+if strcmp(data.lockType,'preStim')
+    data.baseLineMeans = mean(20*log10(abs(X)),2);    
+elseif ~strcmp(data.lockType,'RT')
     baselineIdx = epochTime<=data.baseLine(2) & epochTime>= data.baseLine(1);
-    data.baseLineMeans = nanmean(erp(:,:,baselineIdx),3);
+    data.baseLineMeans = nanmean(erp(:,:,baselineIdx),3);    
 end
-
 
 switch data.baselineType
     case 'sub'
