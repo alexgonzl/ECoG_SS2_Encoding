@@ -4,9 +4,8 @@ function GLM_PCACompPlots2(opts)
 % load data and PCA results
 fileName = ['allMBAnalysis' opts.lock 'sublogPowernonLPCch'];
 load([opts.dataPath opts.lock '/' fileName '.mat'])
-%fileName = ['PCATrialDecomp-MBAnalysis2_Kmeans' opts.lock 'sublogPowernonLPCch'];
-fileName = ['PCATrialDecomp-MBAnalysis2' opts.lock 'sublogPowernonLPCch'];
-load([opts.dataPath opts.lock '/' fileName '.mat'])
+fN = opts.fileName;
+load([opts.dataPath opts.lock '/' fN '.mat'])
 pcadat = out; clear out;
 % load electrode locations
 load('~/Google Drive/Research/ECoG_SS2e/data_results/Renderings/electrodeLocs.mat')
@@ -17,8 +16,8 @@ time    = mean(data.Bins(data.AnalysisBins,:),2);
 nFeat   = pcadat.nFeat;
 nChans  = pcadat.nChans;
 nComps  = pcadat.nComps;
-nBins   = data.nBins;
 nBands  = data.nBands;
+nBins   = nFeat/nBands;
 rois    = data.ROIid;
 nROIs   = numel(unique(rois));
 % colormap settings

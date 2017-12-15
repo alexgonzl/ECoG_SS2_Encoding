@@ -1,4 +1,4 @@
-function behavPlots_prelim(savePath)
+function behavPlots(savePath)
 %% Plot the results by subject.
 
 dataPath  = '~/Google Drive/Research/ECoG_SS2e/Behavior/summary/';
@@ -18,10 +18,16 @@ for ss = 1:nSubjs
     RTe(ss) = mean([behavPerf.Subj_studyRT_EncPerf(ss,:).mean]);
     RTr(ss) = mean([behavPerf.Subj_testRT_EncPerf(ss,:).mean]);
 end
+dP = [2.41,1.94,2.28,1.77,3.66,3.54,2.59,1.89];
 
 shapes = 'ods><x+^';
 
 % Figure: combined plots
+
+gap = 0.075;
+plt = 0.12;
+marg = 0.05;
+xpos = cumsum([marg plt+gap plt+gap plt+gap plt+gap]);
 
 % axis 1, accuracy.
 y = AC;
@@ -30,7 +36,7 @@ opts.shapes = shapes;
 opts.f_han = figure(1); clf;
 set(gcf, 'position', [100 100 800 400],'paperpositionmode','auto');
 opts.markerSize = 125;
-opts.ax_han =  axes('position',[0.05 0.1 0.15 0.85]);
+opts.ax_han =  axes('position',[xpos(1) 0.1 plt 0.85]);
 opts.yLims = [-0.1 1.1];
 opts.yticks = [0 0.5 1];
 opts.text = sprintf(' M = %0.2f',mean(y));
@@ -42,10 +48,24 @@ opts.inkspace = inkscapePath;
 
 coreplot(y,opts);
 
+y = dP;
+opts.ax_han =  axes('position',[xpos(2) 0.1 plt 0.85]);
+opts.yLims = [0 4.1];
+opts.yticks = [0 2 4];
+opts.text = sprintf(' M = %0.2f',mean(y));
+%opts.text_loc = [0.5,0.2];
+opts.xLabel = ' d-prime';
+opts.yLabel = '';
+opts.xticks = '';
+opts.inkspace = inkscapePath;
+
+coreplot(y,opts);
+
+
 %---%
 % axis 2, RTs (encoding)
 y = RTe;
-opts.ax_han = axes('position',[0.30 0.1 0.15 0.85]); hold on;
+opts.ax_han =  axes('position',[xpos(3) 0.1 plt 0.85]);
 opts.yLims = [-0.2 2.6];
 opts.xLabel = ' RTs-enc (s) ';
 opts.yticks = [0 1 2];
@@ -56,7 +76,7 @@ coreplot(y,opts);
 
 % RTs (retrieval)
 y = RTr;
-opts.ax_han = axes('position',[0.55 0.1 0.15 0.85]); hold on;
+opts.ax_han =  axes('position',[xpos(4) 0.1 plt 0.85]);
 opts.xLabel = ' RTs-ret (s) ';
 opts.text = sprintf(' M = %0.2fs',mean(RTr));
 
@@ -64,7 +84,7 @@ coreplot(y,opts);
 
 % RT-corr ( enc-ret) and save
 y = RTsCorr;
-opts.ax_han = axes('position',[0.80 0.1 0.15 0.85]); hold on;
+opts.ax_han =  axes('position',[xpos(5) 0.1 plt 0.85]);
 opts.yLims = [-0.6 0.6];
 opts.xLabel = ' enc-ret (r) ';
 opts.text = sprintf(' M = %0.2f',mean(RTsCorr));
@@ -73,7 +93,7 @@ opts.yticks = [-0.5 0 0.5];
 
 
 opts.filePath = fP;
-opts.fN =  'encodingPerfScatter';
+opts.fN =  'encodingPerfScatterDP';
 coreplot(y,opts);
 
 %% individual plots
@@ -176,7 +196,7 @@ xpos = (1:nSubjs)/nSubjs*0.75;
 
 % actual plotting
 figure(f_han);
-axes(ax_han);
+axes(ax_han); cla;
 xlim([0 1]);
 plot([0.05 0.95],[1 1]*mean(y),'linewidth',3,'color',0.4*ones(1,3))
 for ss= 1:nSubjs

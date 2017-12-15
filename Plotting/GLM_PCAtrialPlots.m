@@ -3,7 +3,8 @@ function GLM_PCAtrialPlots(opts)
 % load data and PCA results
 fileName = ['allMBAnalysis' opts.lock 'sublogPowernonLPCch'];
 load([opts.dataPath opts.lock '/' fileName '.mat'])
-fileName = ['PCATrialDecomp-MBAnalysis2' opts.lock 'sublogPowernonLPCch'];
+%fileName = ['PCATrialDecomp-MBAnalysis2' opts.lock 'sublogPowernonLPCch'];
+fileName = ['PCATrialDecomp-MBAnalysis_BigBins' opts.lock 'sublogPowernonLPCch'];
 load([opts.dataPath opts.lock '/' fileName '.mat'])
 pcadat = out; clear out;
 % load electrode locations

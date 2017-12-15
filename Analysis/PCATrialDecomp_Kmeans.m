@@ -124,7 +124,11 @@ for rr = 1:nROIs
     Yr = Y(compROIs,:);
     
     % Get OptimalK per region
+    
     Kr = getOptimalK(Yr,K,out.KSelThr);
+    if isnan(Kr)
+        Kr=5;
+    end
     out.TestKmeanCompROIs.Ko(rr) = Kr;
     fprintf('Optimal K for ROI %i Tesrt: %i \n',rr,Kr)
     [IDX, C, SUMD, D ]=...

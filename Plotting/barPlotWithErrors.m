@@ -36,13 +36,15 @@ for ba = 1:nBars
     
     X = M{ba};
     n = size(X,1);
-    [m(ba) se(ba)] = grpstats(X,ones(n,1),{'mean','sem'});
+    [m(ba), se(ba)] = grpstats(X,ones(n,1),{'mean','sem'});
     
-    bar(opts.xPositions(ba),m(ba),0.8,'FaceColor',opts.colors(ba,:),'edgeColor', 'none', 'basevalue',opts.baseLine,'ShowBaseLine','off')
+    b=bar(opts.xPositions(ba),m(ba),0.8,'FaceColor',opts.colors(ba,:),'edgeColor', 'k', 'basevalue',opts.baseLine,'ShowBaseLine','off');
+    b.LineWidth=1.2;
     plot([1 1]*opts.xPositions(ba), [-se(ba) se(ba)]+m(ba), 'color',[0 0 0],'linewidth',4)
     
 end
 ma = max(m+se);
+mi = min(m-se);
 
 plot(xlim,[opts.baseLine opts.baseLine],'-',...
     'color',[0 0 0],'linewidth',2)
@@ -53,6 +55,10 @@ else
     set(gca,'xTick',[])
 end
 
+if isfield(opts,'grid')
+    grid on;
+end
+
 if isfield(opts,'xTickLabel')
     set(gca,'xTickLabel',opts.xTickLabel)
 else
@@ -60,15 +66,19 @@ else
 end
 
 if isfield(opts,'yTicks')
-    set(gca,'YTick',opts.yTicks)
+    if strcmp(opts.yTicks,'def')
+        
+    else
+        set(gca,'YTick',opts.yTicks)
+    end
 else
     set(gca,'yTick',[])
 end
 
 if isfield(opts,'yLimits')
     ylim(opts.yLimits)
-else        
-    ylim([0 ma*1.25])    
+else
+    ylim([min(0,mi*1.4) max(0,ma*1.4)])    
 end
 
 if isfield(opts,'xLimits')
@@ -80,18 +90,19 @@ end
 if isfield(opts,'yLabel')
     ylabel(opts.yLabel)
 end
-if isfield(opts, 'sigMarks')
-    nMarks = size(opts.sigMarks,1);
-    if isfield(opts,'sigLevel')
+
+if isfield(opts, 'sigUniMarks')
+    nMarks = size(opts.sigUniMarks,1);
+    if isfield(opts,'sigUniLevel')
         marks=cell(nMarks,1);
-        for ii=1:nMarks,
-            if opts.sigLevel(ii)<0.001
+        for ii=1:nMarks
+            if opts.sigUniLevel(ii)<0.001
                 marks{ii}='***';
-            elseif opts.sigLevel(ii)<0.01
+            elseif opts.sigUniLevel(ii)<0.01
                 marks{ii}='**';
-            elseif opts.sigLevel(ii)<0.05
+            elseif opts.sigUniLevel(ii)<0.05
                 marks{ii}='*';
-            elseif opts.sigLevel(ii)<0.1
+            elseif opts.sigUniLevel(ii)<0.1
                 marks{ii}='~';
             end
         end
@@ -100,8 +111,41 @@ if isfield(opts, 'sigMarks')
         for ii=1:nMarks, marks{ii}='*'; end
     end
     for ii = 1:nMarks
-        ypos = [1 1]*ma*(1+.18*ii);
-        xpos = opts.sigMarks(ii,:);
+        ypos = 1.05*ma;
+        xpos = opts.sigUniMarks(ii);     
+        if strcmp(marks{ii},'~')            
+            tt=text(xpos,ypos*1.05, marks{ii});
+        else
+            tt=text(xpos,ypos*1.02, marks{ii});
+        end
+        tt.VerticalAlignment='middle'; tt.HorizontalAlignment='center';
+        tt.FontSize=40;
+        %plot(mean(xpos),ma*(1.04+.12*ii),marks{ii},'color','k')
+    end    
+end
+
+if isfield(opts, 'sigBiMarks')
+    nMarks = size(opts.sigBiMarks,1);
+    if isfield(opts,'sigBiLevel')
+        marks=cell(nMarks,1);
+        for ii=1:nMarks
+            if opts.sigBiLevel(ii)<0.001
+                marks{ii}='***';
+            elseif opts.sigBiLevel(ii)<0.01
+                marks{ii}='**';
+            elseif opts.sigBiLevel(ii)<0.05
+                marks{ii}='*';
+            elseif opts.sigBiLevel(ii)<0.1
+                marks{ii}='~';
+            end
+        end
+    else
+        marks=cell(nMarks,1);
+        for ii=1:nMarks, marks{ii}='*'; end
+    end
+    for ii = 1:nMarks
+        ypos = [1 1]*ma*(1+.11*ii);
+        xpos = opts.sigBiMarks(ii,:);
         plot(xpos,ypos,'-k','linewidth',2)
         if strcmp(marks{ii},'~')            
             tt=text(mean(xpos),ypos(1)*1.05, marks{ii});
@@ -113,4 +157,5 @@ if isfield(opts, 'sigMarks')
         %plot(mean(xpos),ma*(1.04+.12*ii),marks{ii},'color','k')
     end    
 end
+
 set(gca,'LineWidth',2,'FontSize',20)

@@ -1,6 +1,3 @@
-% Analysis Code for SS2 encoding data
-%
-% Analyses codes:
 function SS2e_MBAnalysis(lock,AnalysisNum,opts)
 inkscapePath='/Applications/Inkscape.app/Contents/Resources/bin/inkscape';
 
@@ -12,7 +9,7 @@ addpath lib/
 dirPath         = ['~/Google Drive/Research/ECoG_SS2e/data_results/'] ;
 %fileName        = ['allERSPs' band 'Group' lock 'sublogPowernonLPCCh'];
 %fileName        = ['allMBAnalysis' lock 'sublogPowernLPClowEvokedVar'];
-fileName        = ['allMBAnalysis' lock 'sublogPowernonLPCch'];
+fileName        = ['allMBAnalysis_2' lock 'sublogPowernonLPCch'];
 
 load([dirPath lock '/' fileName '.mat'])
 
@@ -58,32 +55,32 @@ switch lock
     info.alpha      = 0.05/26;
     info.xticklabel = {'-0.8','-0.4','stim','0.4','0.8','1.2'};
     case  {'preStim'}
-    info.xtick      = [-1.2 -.8 -0.4 0 0.4 0.8 1.2];
+    %info.xtick      = [-1.2 -.8 -0.4 0 0.4 0.8 1.2];    
     info.toi        = [-1.5 1.5];
     info.alpha      = 0.05/30;
-    info.xticklabel = {'-1.2','-0.8','-0.4','stim','0.4','0.8','1.2'};
+    %info.xticklabel = {'-1.2','-0.8','-0.4','stim','0.4','0.8','1.2'};
+    %info.xticklabel = {'-0.8','stim','0.8'};
+    info.xtick      = [0 0.5 1]; %%0.5 1];
+    info.xticklabel = {'stim','0.5','1'};
 end
 
 info.cols            = 'oc';
 info.yticksLabels   = {'\delta','\theta','\alpha','\beta','l-\gamma','h-\gamma'};
 info.thr            = 1;
-info.pThr           = 0.01; % corrected.
+info.pThr           = opts.pThr; % corrected.
 
 % Analysis 1
-clev = [-4:-1 1:4];
-y = brewermap(numel(clev)-1,'*RdBu');
-y2 = brewermap(1000,'*RdBu');
-% x=parula(1200);
-% d=downsample(1:size(x,1),floor(size(x,1)/(numel(clev)-2)));
-% x=x(d,:);
-% y=[x(1:numel(d)/2,:); 1 1 1; x(numel(d)/2+1:numel(d),:)];
-%cm = [x(1:32,:);ones(32,3);x(33:64,:)];
 
-%colormap(cm);
-Zlims = [-4 4];
+y2 = brewermap(1000,'*RdBu');
+
+
 switch AnalysisNum
     % Plot ROIs level activity
     case 1
+        AnalysisBins = data.Bins(:,1)>-0.51;
+        clev = [-5:-1 1:5];
+        y = brewermap(numel(clev)-1,'*RdBu');
+        Zlims = [-5 5];
         figure(1); clf;
         %        colormap(cm);
         set(gcf,'paperpositionmode','auto','color','white')
@@ -91,16 +88,16 @@ switch AnalysisNum
         info.Analysis   = [lock '_SpectoROIsTVals'];
         
         freqs = 1:data.nBands; nBands = data.nBands;
-        nBins = sum(data.AnalysisBins);
-        time  = mean(data.Bins(data.AnalysisBins,:),2);
+        nBins = sum(AnalysisBins);
+        time  = mean(data.Bins(AnalysisBins,:),2);
         for rr =1:3
             % select ROI spectrogram
-            X = squeeze(data.tBinROI_tChResp(rr,:,data.AnalysisBins));
+            X = squeeze(data.tBinROI_tChResp(rr,:,AnalysisBins));
             % get significant pvals
-            Y = squeeze(data.pBinROI_tChResp(rr,:,data.AnalysisBins));
+            Y = squeeze(data.pBinROI_tChResp(rr,:,AnalysisBins));
             Yt=reshape(mafdr(Y(:)),[nBands nBins]);
             X(Yt>info.pThr)=0;
-            axes('position',[0.1 0.1 0.85 0.8])
+            axes('position',[0.1 0.13 0.85 0.8])
            % h=contourfcmap(time,freqs,X,clev,y, 'lo',y2(1,:),'hi', y2(end,:),...
            %     'cbarloc','eastoutside','method','calccontour','evencb',1);
             h=contourfcmap(time,freqs,X,clev,y, 'lo',y2(1,:),'hi', y2(end,:),'method','calccontour');
@@ -112,7 +109,8 @@ switch AnalysisNum
             
             hold on;
             plot([0 0],[1 6],'k','linewidth',4)
-            set(gca,'fontsize',20,'YTick',freqs,'ytickLabel',info.yticksLabels)
+            ytick = linspace(1.2,5.8,6);
+            set(gca,'fontsize',25,'YTick',ytick,'ytickLabel',info.yticksLabels)
             set(gca,'XTick',info.xtick,'xtickLabel',info.xticklabel)
             info.fileName   = strcat(data.ROIs{rr},info.Analysis);
             print(gcf, '-dtiff','-r300', [info.savePath info.fileName])
@@ -158,31 +156,71 @@ switch AnalysisNum
         %renderChansSS2e(data.IDX,fileName)
         % semantic RTs correlations ROI
     case 3
+        Zlims = [-3 3];
+        clev = [Zlims(1):-1 1:Zlims(2)];
+        y = brewermap(numel(clev)-1,'*RdBu');
+        
         figure(1); clf;
-        colormap(cm);
         set(gcf,'paperpositionmode','auto','color','white')
-        set(gcf,'position',[100,100,500,300]);
+        set(gcf,'position',[100,100,500,250]);
+        %colormap(cm);
+        figure(2); clf;
+        set(gcf,'paperpositionmode','auto','color','white')
+        set(gcf,'position',[100,100,400,250]);
         
         info.Analysis   = [lock 'StudyRTCorrROI_TVals'];
-        freqs = 1:6;
-        time  = mean(data.Bins,2);
+        freqs = 1:data.nBands; nBands = data.nBands;
+        nBins = sum(data.AnalysisBins);
+        time  = mean(data.Bins(data.AnalysisBins,:),2);
+        time2 = [-0.25 0.25 0.75 1.25];
+        xtick2 = [-0.25 0 0.25 0.5 0.75 1 1.25];
+        xticklabel2 = {'','stim','','0.5','','1',''};
         for rr = 1:3
             chans=groups==rr;
             X = [];
+            X2 = [];
             for ba=freqs
                 [~,~,~,temp] = ttest(squeeze(data.dataToStudyRTsCorr(ba,chans,:)));
                 X = [X;temp.tstat];
+                [~,~,~,temp] = ttest(squeeze(data.StudyRTs_PrePostActModel_Ts3(ba,chans,:)));
+                X2 = [X2;temp.tstat];
             end
-            
-            info.fileName   = strcat('StudyRTCorrROI',num2str(rr),info.Analysis);
-            axes('position',[0.1 0.1 0.8 0.8])
-            contourf(time,freqs,X,[-10 -3 -2 0 2 3 10]);
+                        
+            figure(1);clf;
+            axes('position',[0.13 0.15 0.85 0.8])
+            %contourf(time,freqs,X,[-10 -3 -2 0 2 3 10]);
+            h=contourfcmap(time,freqs,X,clev,y, 'lo',y2(1,:),'hi', y2(end,:),'method','calccontour');
+            for i = 1:numel(h.l)
+                h.l(i).Color='none';
+            end
             hold on;
             plot([0 0],[1 6],'k','linewidth',4)
-            set(gca,'fontsize',20,'ytickLabel',info.yticksLabels )
-            set(gca,'cLim',Zlims)
+            ytick = linspace(1.2,5.8,6);
+            set(gca,'fontsize',30,'YTick',ytick,'ytickLabel',info.yticksLabels)  
+            set(gca,'XTick',info.xtick,'xtickLabel',info.xticklabel)
+            %set(gca,'cLim',Zlims)
+            info.fileName   = strcat(data.ROIs{rr},info.Analysis);
             print(gcf, '-dtiff','-r300', [info.savePath info.fileName])
+            
+            figure(2);clf;
+            axes('position',[0.2 0.15 0.75 0.8])
+            %axes('position',[0.1 0.13 0.85 0.8])
+            %contourf(time,freqs,X,[-10 -3 -2 0 2 3 10]);
+            h=contourfcmap(time2,freqs,X2,clev,y, 'lo',y2(1,:),'hi', y2(end,:),'method','calccontour');
+            for i = 1:numel(h.l)
+                h.l(i).Color='none';
+            end
+            hold on;
+            plot([0 0],[1 6],'k','linewidth',4)
+            ytick = linspace(1.2,5.8,6);
+            set(gca,'fontsize',30,'YTick',ytick,'ytickLabel',info.yticksLabels)  
+            set(gca,'XTick',xtick2,'xtickLabel',xticklabel2)
+            %set(gca,'cLim',Zlims)
+            info.fileName   = strcat(data.ROIs{rr},'_bigbin_',info.Analysis);
+            print(gcf, '-dtiff','-r300', [info.savePath info.fileName])
+            
         end
+         
         %fileName = [lock 'StudyRTCorrClusterGroups'];
         %renderChansSS2e(data.KMeansStudy.IDX,fileName)
         
@@ -238,140 +276,69 @@ switch AnalysisNum
         fileName = [lock 'TestsRTCorrClusterGroups'];
         renderChansSS2e(data.KMeansTest.IDX,fileName)
     case 6
-        % recogntion RTs correlations ROIs
-        figure(1); clf;
-        colormap(cm);
-        set(gcf,'paperpositionmode','auto','color','white')
-        set(gcf,'position',[100,100,500,300]);
+       Zlims = [-3 3];
+        clev = [Zlims(1):-1 1:Zlims(2)];
+        y = brewermap(numel(clev)-1,'*RdBu');
         
-        info.Analysis   = ['_TVals'];
-        freqs = 1:6;
-        time  = mean(data.Bins,2);
-        Zlims = [-3 3];
+        figure(1); clf;
+        set(gcf,'paperpositionmode','auto','color','white')
+        set(gcf,'position',[100,100,500,250]);
+        figure(2); clf;
+        set(gcf,'paperpositionmode','auto','color','white')
+        set(gcf,'position',[100,100,400,250]);
+        %colormap(cm);
+ 
+        info.Analysis   = [lock 'TestRTCorrROI_TVals'];
+        freqs = 1:data.nBands; nBands = data.nBands;
+        nBins = sum(data.AnalysisBins);
+        time  = mean(data.Bins(data.AnalysisBins,:),2);
+        time2 = [-0.25 0.25 0.75 1.25];
+        xtick2 = [-0.25 0 0.25 0.5 0.75 1 1.25];
+        xticklabel2 = {'','stim','','0.5','','1',''};
         for rr = 1:3
-            chans = data.ROIid==rr;
+            chans=groups==rr;
             X = [];
+            X2 = [];
             for ba=freqs
                 [~,~,~,temp] = ttest(squeeze(data.dataToTestRTsCorr(ba,chans,:)));
                 X = [X;temp.tstat];
+                [~,~,~,temp] = ttest(squeeze(data.TestRTs_PrePostActModel_Ts3(ba,chans,:)));
+                X2 = [X2;temp.tstat];
             end
-            %X=squeeze(data.KMeansTest.TTests(rr,:,:));
-            X(~(abs(X)>info.thr))=0;
-            info.fileName   = strcat('TestRTCorrROIs',num2str(rr),info.Analysis);
-            axes('position',[0.1 0.1 0.8 0.8])
-            contourf(time,freqs,X,[-10 -3 -2 0 2 3 10]);
+            
+            figure(1);clf;
+            axes('position',[0.1 0.13 0.85 0.8])
+            %contourf(time,freqs,X,[-10 -3 -2 0 2 3 10]);
+            h=contourfcmap(time,freqs,X,clev,y, 'lo',y2(1,:),'hi', y2(end,:),'method','calccontour');
+            for i = 1:numel(h.l)
+                h.l(i).Color='none';
+            end
             hold on;
             plot([0 0],[1 6],'k','linewidth',4)
-            set(gca,'fontsize',20,'ytickLabel',info.yticksLabels )
-            set(gca,'cLim',Zlims)
+            ytick = linspace(1.2,5.8,6);
+            set(gca,'fontsize',25,'YTick',ytick,'ytickLabel',info.yticksLabels)  
+            set(gca,'XTick',info.xtick,'xtickLabel',info.xticklabel)
+            %set(gca,'cLim',Zlims)
+            info.fileName   = strcat(data.ROIs{rr},info.Analysis);
+            print(gcf, '-dtiff','-r300', [info.savePath info.fileName])
+            
+            figure(2);clf;
+            axes('position',[0.15 0.13 0.8 0.8])
+            %axes('position',[0.1 0.13 0.85 0.8])
+            %contourf(time,freqs,X,[-10 -3 -2 0 2 3 10]);
+            h=contourfcmap(time2,freqs,X2,clev,y, 'lo',y2(1,:),'hi', y2(end,:),'method','calccontour');
+            for i = 1:numel(h.l)
+                h.l(i).Color='none';
+            end
+            hold on;
+            plot([0 0],[1 6],'k','linewidth',4)
+            ytick = linspace(1.2,5.8,6);
+            set(gca,'fontsize',25,'YTick',ytick,'ytickLabel',info.yticksLabels)  
+            set(gca,'XTick',xtick2,'xtickLabel',xticklabel2)
+            %set(gca,'cLim',Zlims)
+            info.fileName   = strcat(data.ROIs{rr},'_bigbin_',info.Analysis);
             print(gcf, '-dtiff','-r300', [info.savePath info.fileName])
         end
-        %         %fileName = 'TestsRTCorrClusterGroups';
-        %         %renderChansSS2e(data.KMeansTest.IDX,fileName)
-        %     case 6
-        %         % lasso recognition RT
-        % %         for ss = 1:7
-        % %             figure(1); clf;
-        % %             set(gcf,'paperpositionmode','auto','color','white')
-        % %             set(gcf,'position',[100,100,300,300]);
-        % %             s=scatter(data.LassoTestRTs.Y{ss},data.LassoTestRTs.Yhat{ss},'ok');
-        % %             set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',50)
-        % %             l=lsline;
-        % %             set(gca,'fontsize',20,'linewidth',4)
-        % %             set(l,'linewidth',4)
-        % %             xlabel(' RTs '); ylabel(' Prediction ')
-        % %
-        % %             xlim([0 3])
-        % %             fN = [lock '_subj' num2str(ss) 'lassoRecogRTpred'];
-        % %             fP = '~/Google Drive/Research/ECoG_SS2e/';
-        % %             cPath = pwd;
-        % %             cd(fP)
-        % %             addpath(cPath)
-        % %             addpath([cPath '/Plotting/'])
-        % %
-        % %             print(gcf,'-dsvg',fN)
-        % %             eval(['!' inkscapePath ' -z ' fN '.svg' ' --export-pdf=' fN '.pdf'])
-        % %             eval(['!rm ' fN '.svg'])
-        % %         end
-        %
-        %         figure(2); clf; set(gcf, 'position', [100 100 500 400],'paperpositionmode','auto');
-        %         sD = 200;
-        %         shapes = 'ods><x+';
-        %         % RTs (retrieval)
-        %         axes('position',[0.2 0.1 0.40 0.85]); hold on;
-        %         xlim([0 1]); ylim([-0.3 0.6])
-        %         X = data.LassoTestRTs.corr;
-        %         for ss= 1:7
-        %             s=scatter(0.5+randn*0.1,X(ss),shapes(ss));
-        %             set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
-        %         end
-        %         plot([0.2 0.8],[1 1]*mean(X),'linewidth',3,'color',0.4*ones(1,3))
-        %         set(gca,'fontsize',20,'xtick',[],'ytick',[-0.5 0 0.5],'linewidth',2);
-        %         ylabel(' Corr (r) ')
-        %
-        %         fN = [lock 'lassoRecogRTpred'];
-        %         fP = '~/Google Drive/Research/ECoG_SS2e/';
-        %         cPath = pwd;
-        %         cd(fP)
-        %         addpath(cPath)
-        %         addpath([cPath '/Plotting/'])
-        %
-        %         print(gcf,'-dsvg',fN)
-        %         eval(['!' inkscapePath ' -z ' fN '.svg' ' --export-pdf=' fN '.pdf'])
-        %         eval(['!rm ' fN '.svg'])
-        %
-        %         cd(cPath)
-        %     case 7
-        %         for ss = 1:7
-        %             figure(1); clf;
-        %             set(gcf,'paperpositionmode','auto','color','white')
-        %             set(gcf,'position',[100,100,300,300]);
-        %             s=scatter(data.LassoStudyRTs.Y{ss},data.LassoStudyRTs.Yhat{ss},'ok');
-        %             set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',50)
-        %             l=lsline;
-        %             set(gca,'fontsize',20,'linewidth',4)
-        %             set(l,'linewidth',4)
-        %             xlabel(' RTs '); ylabel(' Prediction ')
-        %
-        %             xlim([0 3])
-        %             fN = [lock '_subj' num2str(ss) 'lassoStudyRTpred'];
-        %             fP = '~/Google Drive/Research/ECoG_SS2e/';
-        %             cPath = pwd;
-        %             cd(fP)
-        %             addpath(cPath)
-        %             addpath([cPath '/Plotting/'])
-        %
-        %             print(gcf,'-dsvg',fN)
-        %             eval(['!' inkscapePath ' -z ' fN '.svg' ' --export-pdf=' fN '.pdf'])
-        %             eval(['!rm ' fN '.svg'])
-        %         end
-        %         figure(2); clf; set(gcf, 'position', [100 100 500 400],'paperpositionmode','auto');
-        %         sD = 200;
-        %         shapes = 'ods><x+';
-        %         % RTs (retrieval)
-        %         axes('position',[0.2 0.1 0.40 0.85]); hold on;
-        %         xlim([0 1]); ylim([-0.3 0.6])
-        %         X = data.LassoStudyRTs.corr;
-        %         for ss= 1:7
-        %             s=scatter(0.5+randn*0.1,X(ss),shapes(ss));
-        %             set(s,'markerfaceColor','k','markeredgeColor','k','sizeData',sD,'lineWidth',4)
-        %         end
-        %         plot([0.2 0.8],[1 1]*mean(X),'linewidth',3,'color',0.4*ones(1,3))
-        %         set(gca,'fontsize',20,'xtick',[],'ytick',[-0.5 0 0.5],'linewidth',2);
-        %         ylabel(' Corr (r) ')
-        %
-        %         fN = [lock 'lassoStudyRTpred'];
-        %         fP = '~/Google Drive/Research/ECoG_SS2e/';
-        %         cPath = pwd;
-        %         cd(fP)
-        %         addpath(cPath)
-        %         addpath([cPath '/Plotting/'])
-        %
-        %         print(gcf,'-dsvg',fN)
-        %         eval(['!' inkscapePath ' -z ' fN '.svg' ' --export-pdf=' fN '.pdf'])
-        %         eval(['!rm ' fN '.svg'])
-        %
-        %         cd(cPath)
 end
 end
 
