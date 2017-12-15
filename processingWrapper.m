@@ -152,7 +152,7 @@ addpath lib/
 
 bands        = {'delta','theta','alpha','beta','lgam','hgam'};
 %bands        = {'beta','lgam','hgam'};
-%lockType     = {'preStim2','stim','RT'};
+%lockType     = {'preStim2','stim','RT'};D
 lockType     = {'preStim'};
 
 opts                = [];
@@ -180,6 +180,8 @@ for lt = lockType
         
         if ~exist(savePath2,'dir'); mkdir(savePath2); end;
         
+        %save([savePath fileName '.mat'],'data')
+        %save([savePath2 fileName '.mat'],'data')
         save([savePath fileName '.mat'],'data')
         save([savePath2 fileName '.mat'],'data')
         fprintf('grouping data completed for %s\n',opts.band)
@@ -191,6 +193,7 @@ end
 
 addpath Analysis/
 addpath lib/
+addpath lib/fdr_bh/
 
 bands        = {'delta','theta','alpha','beta','lgam','hgam'};
 %lockType     = {'preStim2','stim','RT'};
@@ -205,10 +208,27 @@ for lt = lockType
     opts.lockType       = lt{1};
     opts.dataPath       = ['~/Google Drive/Research/ECoG_SS2e/data_results/' opts.lockType '/'];
     data        = groupLPCDataMultiBand(opts);        
-    fileName   = [opts.hems 'MBAnalysis' data.extension];
+    fileName   = [opts.hems 'MBAnalysis_2' data.extension];
     save([opts.dataPath fileName '.mat'],'data')
     fprintf('grouping data completed for %s\n',lt{1})    
 end
+
+%% LME model analyses
+addpath Analysis/
+addpath lib/
+addpath lib/fdr_bh/
+
+lockType     = {'preStim'};
+opts                = [];
+opts.hems           = 'all';
+opts.reference      = 'nonLPCch';
+opts.lockType       = 'preStim';
+
+opts.dataPath       = ['~/Google Drive/Research/ECoG_SS2e/data_results/' opts.lockType '/'];
+out        = LME_ModelAnalyses(data);        
+fileName   = [opts.hems 'LME_ModelAnalysis' data.extension];
+save([opts.dataPath fileName '.mat'],'out')
+fprintf('modeling completed')    
 
 %% obtain channel locations & plot locs
 
@@ -270,7 +290,7 @@ save([dataPath fileName '.mat'],'elecLocs');
 addpath Analysis/
 addpath lib/
 
-lockType     = {'preStim','preStim2','stim','RT'};
+lockType     = {'preStim'};%,'preStim2','stim','RT'};
 %lockType     = {'preStim'};
 
 opts                = [];
@@ -287,9 +307,15 @@ for lt = lockType
     load([opts.dataPath opts.lockType '/' fileName '.mat'])
     
     %out     = PCATrialDecomp(data,opts);
-    out = PCATrialDecomp_SelectComps(data,opts);
     
-    fileName            = ['PCATrialDecomp-MBAnalysis3' extension]; 
+    if 1
+        out = PCATrialDecomp_SelectComps(data,opts);    
+        fileName            = ['PCATrialDecomp-MBAnalysis3' extension]; 
+    else
+        out = PCATrialDecomp_SelectComps2(data,opts);    
+        fileName            = ['PCATrialDecomp-MBAnalysis_BigBins' extension]; 
+    end
+    
     save([opts.dataPath opts.lockType '/' fileName '.mat'],'out')
     
     fprintf('PCA trial decomp completed for %s\n',lt{1})    
@@ -322,7 +348,7 @@ end
 addpath Analysis/
 addpath lib/
 
-lockType     = {'preStim2','stim','RT'};
+lockType     = {'preStim'}%','stim','RT'};
 
 opts                = [];
 opts.maxK           = 10;
@@ -332,12 +358,15 @@ for lt = lockType
     opts.lockType       = lt{1};
     extension           = [opts.lockType 'sublogPower' opts.reference];
     fileName            = ['PCATrialDecomp-MBAnalysis2' extension];
+    %fileName            = ['PCATrialDecomp-MBAnalysis_BigBins' extension];
+    
     load([opts.dataPath opts.lockType '/' fileName '.mat'])
     
-    %out     = PCATrialDecomp(data,opts);
+    
     out = PCATrialDecomp_Kmeans(out,opts);
     
-    fileName            = ['PCATrialDecomp-MBAnalysis2_Kmeans' extension]; 
+    %fileName            = ['PCATrialDecomp-MBAnalysisBigBins_Kmeans' extension]; 
+    fileName            = ['PCATrialDecomp-MBAnalysis_Kmeans' extension]; 
     save([opts.dataPath opts.lockType '/' fileName '.mat'],'out')
 
     fprintf('PCA trial decomp completed for %s\n',lt{1})    

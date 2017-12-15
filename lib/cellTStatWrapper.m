@@ -24,3 +24,9 @@ for ii = 1:N
     end
 end
 
+
+p = [out.uniVariateP; out.biVariateP];
+[~,a] = fdr_bh(p);
+
+out.FDR_Thr = a;
+
