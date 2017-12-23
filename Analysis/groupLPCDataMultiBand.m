@@ -110,6 +110,33 @@ Hem_Vec = [];
 ROI_Combs = [];
 Subj_Vec  = [];
 PrePostC  = [];
+
+
+
+
+nBins = data.nBins;
+mB = zeros(data.nChans,nBins);
+FitCor_sRTs = zeros(data.nChans,nBins);
+FitCor_tRTs = zeros(data.nChans,nBins);
+
+B = cell(nSubjs,1);
+D1 = cell(nSubjs,1);
+D2 = cell(nSubjs,1);
+
+nLags = 41;
+
+Chan_XC= cell(nSubjs,1);
+Chan_XC_sRTs= cell(nSubjs,1);
+Chan_XC_tRTs= cell(nSubjs,1);
+ROI_XC= cell(nSubjs,1);
+
+ROI_XC_sRTs= nan(nSubjs,nROIs,nROIs,nLags);
+ROI_XC_tRTs= nan(nSubjs,nROIs,nROIs,nLags);
+
+tROI_XC_sRTs= nan(nSubjs,nROIs,nROIs,nLags);
+tROI_XC_tRTs= nan(nSubjs,nROIs,nROIs,nLags);
+ 
+chanCount = 1;
 for ss = 1:nSubjs
     
     subjROIchans = data.ROIid(data.subjChans==ss);
@@ -178,7 +205,84 @@ for ss = 1:nSubjs
         end
     end
     
+    %% quadratic fits to spectrograms.
+    B{ss} = zeros(nChans,nTrials,nBins);    
+
+    %fr = (1:6)'-3.5; fr2 = fr.^2; 
+    fr = [[-1 -1 -1 1 1 1]',ones(6,1)];
+    for ii = 1:nChans
+        for tr = 1:nTrials         
+            A = squeeze(data.BinERPs{ss}(:,ii,tr,:));
+            temp =  fr\A;
+            B{ss}(ii,tr,:) = temp(1,:);  
+        end
+        mB(chanCount,:) = mean(B{ss}(ii,:,:));
+        FitCor_sRTs(chanCount,:) = corr(squeeze(B{ss}(ii,:,:)),RTs{1},'type','spearman');        
+        FitCor_tRTs(chanCount,:) = corr(squeeze(B{ss}(ii,:,:)),RTs{2},'type','spearman');
+        chanCount = chanCount+1;
+        %B(ii,:,:) = linSpectrogramFit(squeeze(data.BinERPs{ss}(:,ii,:,:)));
+        %B2(ii,:,:,:) = quadSpectrogramFit(squeeze(data.BinERPs{ss}(:,ii,:,:)));
+    end
+    %%
+    D1{ss} = nan(nChans,nChans,nTrials);
+    D2{ss} = nan(nChans,nChans,nTrials);
+    Chan_XC{ss} = nan(nChans,nChans,nTrials,nLags);
+    Chan_XC_sRTs{ss} = nan(nChans,nChans,nLags);
+    Chan_XC_tRTs{ss} = nan(nChans,nChans,nLags);
+    ROI_XC{ss} = nan(nROIs,nROIs,nTrials,nLags);  
+    
+    for ii = 1:nChans
+        for jj = 1:nChans
+            for tt = 1:nTrials
+                 %[cc,lags] = crosscorr(squeeze(B(ii,tt,:)),squeeze(B(jj,tt,:)));
+                 [cc,lags] = crosscorr(squeeze(B{ss}(ii,tt,:)),squeeze(B{ss}(jj,tt,:)));
+                 Chan_XC{ss}(ii,jj,tt,:) = cc;
+                 [D1{ss}(ii,jj,tt),mi] = max(cc);
+                 D2{ss}(ii,jj,tt) = lags(mi);
+            end
+            % put in lag part here, to obtain max lag per chan pair.
+            Chan_XC_sRTs{ss}(ii,jj,:) = corr(squeeze(Chan_XC{ss}(ii,jj,:,:)),RTs{1},'type','spearman');
+            Chan_XC_tRTs{ss}(ii,jj,:) = corr(squeeze(Chan_XC{ss}(ii,jj,:,:)),RTs{2},'type','spearman');            
+        end
+        
+    end
+    %%
+    for r1 = 1:nROIs
+        for r2 = 1:nROIs
+            x= Chan_XC{ss}(subjROIchans==r1,subjROIchans==r2,:,:);
+            y = squeeze(mean(mean(x,1),2));
+            ROI_XC{ss}(r1,r2,:,:) = y;            
+            ROI_XC_sRTs(ss,r1,r2,:) = corr(y,RTs{1},'type','spearman');   
+            ROI_XC_tRTs(ss,r1,r2,:) = corr(y,RTs{2},'type','spearman');            
+            
+            x = Chan_XC_sRTs{ss}(subjROIchans==r1,subjROIchans==r2,:);
+            xx = permute(x,[3,1,2]); xx = xx(:,:)';
+            [~,~,~,t] = ttest(xx);
+            tROI_XC_sRTs(ss,r1,r2,:) = t.tstat;
+            
+            x = Chan_XC_tRTs{ss}(subjROIchans==r1,subjROIchans==r2,:);
+            xx = permute(x,[3,1,2]); xx = xx(:,:)';
+            [~,~,~,t] = ttest(xx);
+            tROI_XC_tRTs(ss,r1,r2,:) = t.tstat;
+        end
+    end
+    %x
+    
 end
+
+data.SpecLinFits.Fits =B;
+data.SpecLinFits.ChansMeans = mB;
+data.SpecLinFits.FitCor_sRTs =FitCor_sRTs;
+data.SpecLinFits.FitCor_tRTs = FitCor_tRTs;
+data.SpecLinFits.Chan_XC_sRTs = Chan_XC_sRTs;
+data.SpecLinFits.Chan_XC_tRTs = Chan_XC_tRTs;
+data.SpecLinFits.ROI_XC = ROI_XC;
+data.SpecLinFits.ROI_XC_sRTs = ROI_XC_sRTs;
+data.SpecLinFits.ROI_XC_tRTs = ROI_XC_tRTs;
+
+data.SpecLinFits.tROI_XC_sRTs = tROI_XC_sRTs;
+data.SpecLinFits.tROI_XC_tRTs = tROI_XC_tRTs;
+
 %%
 
 PrePostC2 = cell(size(PrePostC));
@@ -216,3 +320,4 @@ data.Chan2ChanPrePostAct2RT.prepostCModel = m;
 data.Chan2ChanPrePostAct2RT.prepostC_ANOVA = m.anova();
 
 end
+
